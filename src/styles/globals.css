@@ -1,0 +1,152 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------- *
+ * Theme tokens. Two complete identities, not one inverted palette.
+ * ---------------------------------------------------------------- */
+:root[data-theme='dark'] {
+  --bg: #05060a;
+  --bg-soft: #0a0c12;
+  --bg-glass: rgba(8, 10, 16, 0.55);
+  --ink: #ecedf1;
+  --ink-soft: #b8bdcb;
+  --ink-faint: #6e7488;
+  --rule: rgba(255, 255, 255, 0.08);
+  --rule-strong: rgba(255, 255, 255, 0.18);
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --accent-1: #7df9ff;
+  --accent-2: #a78bfa;
+  --accent-3: #7cf3c0;
+  --accent-warn: #ff7a90;
+  --accent-amber: #f5b461;
+}
+
+:root[data-theme='light'] {
+  --bg: #f4efe4;
+  --bg-soft: #ece6d6;
+  --bg-glass: rgba(248, 244, 234, 0.7);
+  --ink: #0e1a2b;
+  --ink-soft: #2d3b52;
+  --ink-faint: #6b7787;
+  --rule: rgba(14, 26, 43, 0.12);
+  --rule-strong: rgba(14, 26, 43, 0.25);
+  --glass-bg: rgba(255, 252, 244, 0.55);
+  --glass-border: rgba(14, 26, 43, 0.14);
+  --accent-1: #1d3a7a;
+  --accent-2: #b86a1f;
+  --accent-3: #2a6f4a;
+  --accent-warn: #b3361f;
+  --accent-amber: #b86a1f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+html {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+::selection {
+  background: var(--accent-1);
+  color: var(--bg);
+}
+
+:where(button, a, [role='button'], input):focus-visible {
+  outline: 2px solid var(--accent-1);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ---------------------------------------------------------------- *
+ * Reusable surfaces.
+ * ---------------------------------------------------------------- */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+
+.glass-strong {
+  background: var(--bg-glass);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(22px) saturate(170%);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+}
+
+.hairline {
+  background: linear-gradient(90deg, transparent, var(--rule-strong), transparent);
+  height: 1px;
+  width: 100%;
+}
+
+.marker {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.display {
+  font-family: 'Fraunces', ui-serif, Georgia, serif;
+  font-optical-sizing: auto;
+  font-variation-settings: 'opsz' 144;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 0.98;
+  color: var(--ink);
+}
+
+.serif-italic {
+  font-family: 'Fraunces', ui-serif, Georgia, serif;
+  font-style: italic;
+  font-variation-settings: 'opsz' 144;
+}
+
+.lede {
+  font-size: clamp(15px, 1.1vw + 0.6rem, 19px);
+  line-height: 1.6;
+  color: var(--ink-soft);
+  max-width: 60ch;
+}
+
+.body-prose p {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--ink-soft);
+  max-width: 64ch;
+}
+
+.body-prose p + p {
+  margin-top: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

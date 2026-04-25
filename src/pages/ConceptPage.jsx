@@ -1,0 +1,433 @@
+import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { ArrowLeft, ArrowUpRight, Cpu, Shield, Square, Zap } from 'lucide-react';
+import { CONCEPTS, getConcept, relatedConcepts } from '../concepts/index.js';
+import { ACCENT_VAR, getDomain } from '../data/domains.js';
+
+const SECTIONS = [
+  { id: 'intuition', label: 'Intuition' },
+  { id: 'problem', label: 'Problem' },
+  { id: 'mechanism', label: 'Mechanism' },
+  { id: 'tradeoffs', label: 'Trade-offs' },
+  { id: 'lineages', label: 'Lineages' },
+  { id: 'related', label: 'Related' },
+];
+
+const LENS_ICON = { performance: Zap, power: Cpu, area: Square, security: Shield };
+
+export default function ConceptPage() {
+  const { slug } = useParams();
+  const concept = getConcept(slug);
+
+  if (!concept) {
+    return (
+      <div className="mx-auto max-w-4xl px-6 py-20 text-center">
+        <div className="marker">unknown concept</div>
+        <h1 className="display mt-3 text-4xl">Not on the die yet.</h1>
+        <Link
+          to="/"
+          className="mt-6 inline-flex items-center gap-2 text-sm"
+          style={{ color: 'var(--accent-1)' }}
+        >
+          <ArrowLeft size={14} aria-hidden="true" /> back to atlas
+        </Link>
+      </div>
+    );
+  }
+
+  const { meta, content, Visualizer } = concept;
+  const domain = getDomain(meta.domain);
+  const accent = ACCENT_VAR[domain?.accent] || 'var(--accent-1)';
+  const related = relatedConcepts(meta);
+
+  return (
+    <article className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10">
+      <Breadcrumb domain={domain} title={meta.title} />
+
+      <Hero
+        meta={meta}
+        domain={domain}
+        accent={accent}
+        Visualizer={Visualizer}
+      />
+
+      <div className="hairline mt-12" />
+
+      <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-12">
+        <TOC accent={accent} />
+        <main className="lg:col-span-9 lg:col-start-4">
+          <Section id="intuition" eyebrow="intuition">
+            <p className="lede">{meta.intuition}</p>
+          </Section>
+
+          <Section id="problem" eyebrow="problem" title={content.problem.title}>
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+              <div className="lg:col-span-2 body-prose">
+                {content.problem.paragraphs.map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </div>
+              {content.problem.aside ? (
+                <Aside
+                  title="lives in this concept"
+                  items={content.problem.aside}
+                />
+              ) : null}
+            </div>
+          </Section>
+
+          <Section
+            id="mechanism"
+            eyebrow="mechanism"
+            title={content.mechanism.title}
+          >
+            <div className="body-prose">
+              {content.mechanism.paragraphs.map((p, i) => (
+                <p key={i}>{p}</p>
+              ))}
+            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              className="mt-8"
+            >
+              <Visualizer />
+            </motion.div>
+          </Section>
+
+          <Section
+            id="tradeoffs"
+            eyebrow="trade-offs"
+            title={content.tradeoffs.title}
+          >
+            <div className="body-prose">
+              {content.tradeoffs.paragraphs.map((p, i) => (
+                <p key={i}>{p}</p>
+              ))}
+            </div>
+            <LensGrid lenses={content.tradeoffs.lenses} accent={accent} />
+          </Section>
+
+          <Section
+            id="lineages"
+            eyebrow="lineages"
+            title={content.lineages.title}
+          >
+            <div
+              className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border lg:grid-cols-3"
+              style={{
+                borderColor: 'var(--rule-strong)',
+                background: 'var(--rule)',
+              }}
+            >
+              {content.lineages.rows.map((row) => (
+                <div
+                  key={row.name}
+                  className="px-5 py-5"
+                  style={{ background: 'var(--bg)' }}
+                >
+                  <div className="display text-xl">{row.name}</div>
+                  <div
+                    className="marker mt-1"
+                    style={{ color: 'var(--ink-faint)' }}
+                  >
+                    {row.kicker}
+                  </div>
+                  <p
+                    className="mt-3 text-sm leading-relaxed"
+                    style={{ color: 'var(--ink-soft)' }}
+                  >
+                    {row.body}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          <Section id="related" eyebrow="related">
+            {related.length === 0 ? (
+              <p style={{ color: 'var(--ink-faint)' }}>No related concepts yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {related.map((r) => (
+                  <Link
+                    key={r.meta.slug}
+                    to={`/c/${r.meta.slug}`}
+                    className="glass group flex items-center justify-between rounded-xl px-4 py-3"
+                  >
+                    <div>
+                      <div
+                        className="marker"
+                        style={{ color: 'var(--ink-faint)' }}
+                      >
+                        {r.meta.domain}
+                      </div>
+                      <div className="display mt-1 text-lg">{r.meta.title}</div>
+                    </div>
+                    <ArrowUpRight
+                      size={14}
+                      aria-hidden="true"
+                      style={{ color: 'var(--ink-faint)' }}
+                    />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </Section>
+
+          <NextPrev current={meta} />
+        </main>
+      </div>
+    </article>
+  );
+}
+
+function Breadcrumb({ domain, title }) {
+  return (
+    <nav
+      className="flex items-center gap-2 text-xs"
+      style={{ color: 'var(--ink-faint)' }}
+      aria-label="Breadcrumb"
+    >
+      <Link to="/" className="hover:underline">
+        atlas
+      </Link>
+      <span>·</span>
+      {domain ? (
+        <Link to={`/d/${domain.id}`} className="hover:underline">
+          {domain.label}
+        </Link>
+      ) : null}
+      <span>·</span>
+      <span style={{ color: 'var(--ink)' }}>{title}</span>
+    </nav>
+  );
+}
+
+function Hero({ meta, domain, accent, Visualizer }) {
+  return (
+    <header className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
+      <div className="lg:col-span-5">
+        <div className="marker" style={{ color: accent }}>
+          {meta.domain} · {meta.difficulty}
+        </div>
+        <h1 className="display mt-3 text-[clamp(36px,4.6vw,72px)]">
+          {meta.title}
+        </h1>
+        <p className="lede mt-4">{meta.shortDescription}</p>
+        <div className="mt-6 flex flex-wrap gap-2">
+          {meta.layers.map((l) => (
+            <span
+              key={l}
+              className="marker rounded-full border px-2.5 py-1"
+              style={{ borderColor: 'var(--rule-strong)' }}
+            >
+              {l}
+            </span>
+          ))}
+          {meta.architectureRelevance.map((a) => (
+            <span
+              key={a}
+              className="marker rounded-full border px-2.5 py-1"
+              style={{ borderColor: 'var(--rule-strong)' }}
+            >
+              {a}
+            </span>
+          ))}
+        </div>
+      </div>
+      <motion.div
+        className="lg:col-span-7"
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <Visualizer />
+      </motion.div>
+    </header>
+  );
+}
+
+function TOC({ accent }) {
+  const [active, setActive] = useState('intuition');
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActive(entry.target.id);
+          }
+        }
+      },
+      { rootMargin: '-30% 0px -55% 0px', threshold: 0 },
+    );
+    SECTIONS.forEach((s) => {
+      const el = document.getElementById(s.id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <aside
+      className="lg:col-span-3 lg:sticky lg:top-28 lg:self-start"
+      aria-label="Table of contents"
+    >
+      <div className="marker mb-3">on this page</div>
+      <ul className="flex flex-col gap-1.5">
+        {SECTIONS.map((s) => {
+          const isActive = active === s.id;
+          return (
+            <li key={s.id}>
+              <a
+                href={`#${s.id}`}
+                className="flex items-center gap-3 py-1 text-sm transition-colors"
+                style={{
+                  color: isActive ? 'var(--ink)' : 'var(--ink-faint)',
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  className="block transition-all"
+                  style={{
+                    width: isActive ? 22 : 8,
+                    height: 1,
+                    background: isActive ? accent : 'var(--rule-strong)',
+                  }}
+                />
+                {s.label}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </aside>
+  );
+}
+
+function Section({ id, eyebrow, title, children }) {
+  return (
+    <section id={id} className="scroll-mt-28 py-14 first:pt-0">
+      <div className="marker mb-3">{eyebrow}</div>
+      {title ? (
+        <h2 className="display mb-6 text-[clamp(28px,3.4vw,52px)]">{title}</h2>
+      ) : null}
+      {children}
+    </section>
+  );
+}
+
+function Aside({ title, items }) {
+  return (
+    <aside className="glass rounded-xl p-4">
+      <div className="marker">{title}</div>
+      <ul className="mt-3 flex flex-col gap-2">
+        {items.map((it) => (
+          <li
+            key={it.label}
+            className="border-b pb-2 last:border-b-0"
+            style={{ borderColor: 'var(--rule)' }}
+          >
+            <div className="marker" style={{ color: 'var(--ink-faint)' }}>
+              {it.label}
+            </div>
+            <div
+              className="mt-0.5 font-mono text-sm"
+              style={{ color: 'var(--ink)' }}
+            >
+              {it.value}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </aside>
+  );
+}
+
+function LensGrid({ lenses, accent }) {
+  return (
+    <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {Object.entries(lenses).map(([key, body]) => {
+        const Icon = LENS_ICON[key] || Cpu;
+        return (
+          <div
+            key={key}
+            className="glass rounded-xl p-4"
+            style={{ borderColor: 'var(--rule-strong)' }}
+          >
+            <div className="flex items-center gap-2">
+              <span
+                className="grid h-6 w-6 place-items-center rounded-md"
+                style={{ background: 'var(--rule)' }}
+              >
+                <Icon size={12} style={{ color: accent }} aria-hidden="true" />
+              </span>
+              <span
+                className="marker"
+                style={{ color: 'var(--ink)' }}
+              >
+                {key}
+              </span>
+            </div>
+            <p
+              className="mt-3 text-sm leading-relaxed"
+              style={{ color: 'var(--ink-soft)' }}
+            >
+              {body}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function NextPrev({ current }) {
+  const order = CONCEPTS.map((c) => c.meta);
+  const idx = order.findIndex((m) => m.slug === current.slug);
+  const prev = idx > 0 ? order[idx - 1] : null;
+  const next = idx < order.length - 1 ? order[idx + 1] : null;
+  return (
+    <div
+      className="mt-12 flex flex-col gap-3 border-t pt-6 sm:flex-row sm:justify-between"
+      style={{ borderColor: 'var(--rule)' }}
+    >
+      {prev ? (
+        <Link
+          to={`/c/${prev.slug}`}
+          className="glass flex flex-1 items-center gap-3 rounded-xl px-4 py-3"
+        >
+          <ArrowLeft size={14} aria-hidden="true" />
+          <div className="text-left">
+            <div className="marker">previous</div>
+            <div className="text-sm" style={{ color: 'var(--ink)' }}>
+              {prev.title}
+            </div>
+          </div>
+        </Link>
+      ) : (
+        <span />
+      )}
+      {next ? (
+        <Link
+          to={`/c/${next.slug}`}
+          className="glass flex flex-1 items-center justify-end gap-3 rounded-xl px-4 py-3"
+        >
+          <div className="text-right">
+            <div className="marker">next</div>
+            <div className="text-sm" style={{ color: 'var(--ink)' }}>
+              {next.title}
+            </div>
+          </div>
+          <ArrowUpRight size={14} aria-hidden="true" />
+        </Link>
+      ) : (
+        <span />
+      )}
+    </div>
+  );
+}
