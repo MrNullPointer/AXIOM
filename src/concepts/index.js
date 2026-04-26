@@ -22,6 +22,7 @@ import { content as cacheContent } from './cache-hierarchy/content.js';
 
 const ISAEncoding = lazy(() => import('./isa/viz/Encoding.jsx'));
 const ISAPhysics = lazy(() => import('./isa/viz/Physics.jsx'));
+const ISAState = lazy(() => import('./isa/viz/State.jsx'));
 const ISAOperands = lazy(() => import('./isa/viz/Operands.jsx'));
 const ISATaxonomy = lazy(() => import('./isa/viz/Taxonomy.jsx'));
 const ISAOrdering = lazy(() => import('./isa/viz/Ordering.jsx'));
@@ -38,6 +39,7 @@ export const CONCEPTS = [
     visualizers: {
       'isa-encoding': ISAEncoding,
       'isa-physics': ISAPhysics,
+      'isa-state': ISAState,
       'isa-operands': ISAOperands,
       'isa-taxonomy': ISATaxonomy,
       'isa-ordering': ISAOrdering,
@@ -45,12 +47,13 @@ export const CONCEPTS = [
     },
     // Approximate min-heights so the page doesn't jump when chunks land.
     vizMinHeights: {
-      'isa-encoding': 360,
-      'isa-physics': 560,
-      'isa-operands': 460,
-      'isa-taxonomy': 540,
-      'isa-ordering': 500,
-      'isa-evolution': 360,
+      'isa-encoding': 380,
+      'isa-physics': 580,
+      'isa-state': 640,
+      'isa-operands': 520,
+      'isa-taxonomy': 560,
+      'isa-ordering': 560,
+      'isa-evolution': 420,
     },
   },
   { meta: pipelineMeta, content: pipelineContent, Visualizer: PipelineVisualizer },

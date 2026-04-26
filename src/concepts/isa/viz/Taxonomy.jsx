@@ -63,74 +63,128 @@ const ISAS = [
   {
     name: 'x86-64',
     blurb:
-      'Variable-length CISC, register-memory, scalar/SIMD (AVX-512), TSO ordering. Microcoded internally to RISC-like μops.',
+      'Variable-length CISC, register-memory two-operand, scalar/SIMD (SSE → AVX-512), TSO ordering. Microcoded internally to RISC-like μops; modern cores have a μop cache that hides the legacy decoder on hot paths.',
     tags: ['cisc', 'regmem', 'scalar', 'simd', 'tso'],
   },
   {
     name: 'ARM AArch64',
     blurb:
-      'Fixed 32-bit RISC, load-store, scalar + SIMD (NEON) + length-agnostic SVE, weak ordering with explicit barriers.',
+      'Fixed 32-bit RISC, load-store, scalar + SIMD (NEON) + length-agnostic SVE, weak ordering with explicit DMB barriers. Adds pointer authentication, MTE, and SME tile extensions.',
     tags: ['risc', 'ldst', 'scalar', 'simd', 'vector', 'weak'],
+  },
+  {
+    name: 'ARM Cortex-M (Thumb-2)',
+    blurb:
+      'Variable-length 16/32-bit Thumb-2 encoding for embedded cores. Same load-store, three-operand RISC philosophy, but optimized for code density on flash-constrained microcontrollers.',
+    tags: ['risc', 'ldst', 'scalar', 'sc'],
   },
   {
     name: 'RISC-V (RV64GCV)',
     blurb:
-      'Open, modular, fixed-width RISC. Load-store. Optional Vector extension. Weak memory model (RVWMO).',
+      'Open, modular, fixed-width RISC. Load-store. Optional Vector extension is length-agnostic. Weak memory model (RVWMO); Ztso opt-in for x86-style binary translation.',
     tags: ['risc', 'ldst', 'scalar', 'vector', 'weak'],
+  },
+  {
+    name: 'MIPS',
+    blurb:
+      'Original load-store RISC blueprint (Stanford 1981, commercial 1985). Five-stage pipeline, branch delay slot, no condition flags. Survives in academia and networking silicon.',
+    tags: ['risc', 'ldst', 'scalar', 'weak'],
+  },
+  {
+    name: 'POWER / PowerPC',
+    blurb:
+      'IBM\'s RISC family. Load-store, fixed 32-bit, condition register (CR0–CR7) instead of single flags. Weak memory model. Powers IBM mainframes, Power Systems, and historically Apple G3–G5 / PS3 PPE.',
+    tags: ['risc', 'ldst', 'scalar', 'simd', 'weak'],
+  },
+  {
+    name: 'SPARC',
+    blurb:
+      'Sun\'s RISC. Famous for register windows: each call rotates the visible 32-register window through a larger physical file. Eliminates most argument-passing spills at the cost of context-switch state.',
+    tags: ['risc', 'ldst', 'scalar', 'tso'],
+  },
+  {
+    name: 'DEC Alpha',
+    blurb:
+      'First mainstream 64-bit ISA (1992). Aggressively clean. The weakest memory model of any commercial architecture — almost everything could reorder. Killed by economics, not engineering.',
+    tags: ['risc', 'ldst', 'scalar', 'weak'],
+  },
+  {
+    name: 'IBM Z (z/Architecture)',
+    blurb:
+      'Mainframe CISC. 64-bit descendant of System/360 (1964). Decimal arithmetic, vector facility, pervasive cryptography in-ISA, sequential consistency for legacy code, fault-tolerant from the silicon up.',
+    tags: ['cisc', 'regmem', 'scalar', 'simd', 'sc'],
   },
   {
     name: 'Itanium (IA-64)',
     blurb:
-      'EPIC: bundles of three instructions with explicit parallelism, predication, and speculation. The compiler did the scheduling.',
+      'EPIC: bundles of three instructions with explicit parallelism, predication, and speculation. The compiler did the scheduling. Brilliant idea, hostile to real-world workloads with cache-miss-driven control flow.',
     tags: ['epic', 'vliw', 'ldst', 'scalar', 'rc'],
   },
   {
     name: 'TI C6000 DSP',
     blurb:
-      'Pure VLIW. Eight functional units, fetch packets of eight 32-bit instructions executed in parallel. No hazard hardware.',
+      'Pure VLIW. Eight functional units, fetch packets of eight 32-bit instructions executed in parallel. No hazard hardware — the compiler is responsible for not stepping on itself.',
     tags: ['vliw', 'ldst', 'scalar', 'rc'],
   },
   {
     name: '6502',
     blurb:
-      'Accumulator architecture. One A register, two index regs (X, Y). Variable-length instructions. Drove the Apple II, NES, Commodore 64.',
+      'Accumulator architecture (1975). One A register, two index regs (X, Y). Variable-length instructions, no general MUL/DIV. Drove the Apple II, NES, Commodore 64, and BBC Micro.',
     tags: ['cisc', 'acc', 'scalar', 'sc'],
   },
   {
     name: 'JVM bytecode',
     blurb:
-      'Stack machine. Operands implicit on the operand stack. Designed for portability and compact verification, not raw speed.',
+      'Stack machine. Operands implicit on the operand stack. Designed for portability and compact bytecode verification, not raw speed. JIT-compiled to register-based machine code at runtime.',
+    tags: ['misc', 'stack', 'scalar', 'sc'],
+  },
+  {
+    name: 'WebAssembly',
+    blurb:
+      'Modern stack machine bytecode targeting both browsers and standalone runtimes. Structured control flow, statically typed locals, no raw pointers — designed for safe compilation to native or sandboxed execution.',
     tags: ['misc', 'stack', 'scalar', 'sc'],
   },
   {
     name: 'subleq (OISC)',
     blurb:
-      'A single instruction: subtract and branch if less-or-equal. Turing-complete. Pedagogically pure; physically impractical.',
+      'A single instruction: subtract and branch if less-or-equal. Turing-complete. Pedagogically pure; physically impractical because every operation that we usually call free now costs at least one branch.',
     tags: ['oisc', 'regmem', 'scalar', 'sc'],
   },
   {
     name: 'Forth / GreenArrays',
     blurb:
-      'Minimal, stack-oriented. The GA144 puts 144 of these tiny machines on a chip — MISC at scale.',
+      'Minimal, stack-oriented. The GA144 puts 144 of these tiny machines on a chip — MISC at scale. Astonishing perf-per-watt for embedded signal processing.',
     tags: ['misc', 'stack', 'scalar', 'sc'],
   },
   {
-    name: 'NVIDIA SASS',
+    name: 'NVIDIA SASS / PTX',
     blurb:
-      'GPU shader ISA. Wide SIMT, predicated, statically scheduled. Effectively dataflow under the hood.',
+      'GPU shader ISA. Wide SIMT, predicated, statically scheduled. PTX is the user-visible virtual ISA; SASS is the per-architecture machine ISA. Effectively dataflow under the hood.',
     tags: ['vliw', 'ldst', 'simd', 'flow', 'rc'],
   },
   {
-    name: 'AMX / SME',
+    name: 'AMD GCN / RDNA',
     blurb:
-      'Matrix tile extensions. The register file holds 2-D tiles; one instruction multiplies them. Built for transformer math.',
+      'AMD GPU ISA. Wave-front SIMD with scalar + vector lanes. Scalar lane handles control flow and uniform values; vector lanes do the parallel work. Distinct from NVIDIA in that the scalar lane is exposed in the ISA.',
+    tags: ['risc', 'ldst', 'simd', 'flow', 'rc'],
+  },
+  {
+    name: 'Intel AMX · Apple AMX · ARM SME',
+    blurb:
+      'Matrix tile extensions. The register file holds 2-D tiles; one instruction multiplies them. Built for transformer math — the abstract machine grew a new register class.',
     tags: ['risc', 'ldst', 'matrix', 'weak'],
   },
   {
     name: 'Cell SPE',
     blurb:
-      'PS3-era. Synergistic Processing Elements: in-order, dual-issue, software-managed local store. RISC-load-store with vector everything.',
+      'PS3-era. Synergistic Processing Elements: in-order, dual-issue, software-managed local store. RISC load-store with vector everything; an early demonstration of explicit-DMA accelerators.',
     tags: ['risc', 'ldst', 'simd', 'weak'],
+  },
+  {
+    name: 'Google TPU MXU',
+    blurb:
+      'Domain-specific systolic array. The MXU is a 128×128 8-bit multiply-accumulate fabric exposed through a small instruction set centered on matrix multiply, transpose, and activation. Dataflow inside, control-flow outside.',
+    tags: ['risc', 'ldst', 'matrix', 'flow', 'rc'],
   },
 ];
 
@@ -160,7 +214,7 @@ export default function Taxonomy() {
         className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3"
         style={{ borderColor: 'var(--rule)' }}
       >
-        <div className="marker">four axes · twelve real ISAs</div>
+        <div className="marker">four axes · {ISAS.length} real ISAs</div>
         <button
           type="button"
           onClick={reset}

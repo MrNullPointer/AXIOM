@@ -4,18 +4,24 @@ import { Pause, Play, RotateCcw } from 'lucide-react';
 
 /**
  * OperandCount — same expression `(a + b) * c` compiled four ways:
- *   0-operand stack machine   (Burroughs / JVM)
- *   1-operand accumulator      (6502 / 8080)
- *   2-operand register-memory  (x86)
- *   3-operand load-store       (RISC-V / ARM)
+ *   0-operand stack machine   (Burroughs / JVM / WebAssembly)
+ *   1-operand accumulator     (6502 / 8080)
+ *   2-operand register-memory (x86)
+ *   3-operand load-store      (RISC-V / ARM)
  *
  * Step button advances all four in lockstep so the reader sees how operand
- * count trades code density for register pressure.
+ * count trades code density for register pressure and dependency depth.
+ *
+ * Footer summarizes:
+ *   bytes — encoded instruction byte count at the end of the program
+ *   chain — length of the architectural-register dependency chain
  */
 
 const STACK = {
   name: 'stack · 0-operand',
-  example: 'Burroughs B5000 · JVM bytecode',
+  example: 'Burroughs B5000 · JVM · WebAssembly',
+  bytes: 11,            // 4 × push (2B each w/ small index) + 2 × arith (1B each), illustrative
+  chain: 5,             // every step writes the same TOS
   steps: [
     { asm: 'push a', stack: ['a'], note: 'fetch a → top of stack' },
     { asm: 'push b', stack: ['a', 'b'], note: 'fetch b → top of stack' },
@@ -28,6 +34,8 @@ const STACK = {
 const ACC = {
   name: 'accumulator · 1-operand',
   example: '6502 · 8080 · early micros',
+  bytes: 9,             // 3 × 3-byte instructions w/ absolute address operand
+  chain: 3,             // every step writes ACC
   steps: [
     { asm: 'lda a', acc: 'a', note: 'load a into ACC' },
     { asm: 'add b', acc: '(a+b)', note: 'ACC ← ACC + b' },
@@ -38,6 +46,8 @@ const ACC = {
 const X86 = {
   name: 'register-memory · 2-operand',
   example: 'x86 / x86-64',
+  bytes: 21,            // ~7B per RIP-relative mov/add/imul w/ disp32
+  chain: 3,             // every step is rax ← rax ⊕ mem
   steps: [
     {
       asm: 'mov rax, [a]',
@@ -60,9 +70,11 @@ const X86 = {
 const RISC = {
   name: 'load-store · 3-operand',
   example: 'RISC-V · ARM AArch64 · MIPS',
+  bytes: 20,            // 5 × 4-byte fixed instructions
+  chain: 3,             // ld a → ld b can issue in parallel; add → mul is the chain
   steps: [
-    { asm: 'ld   x1, a', regs: { x1: 'a' }, note: 'x1 ← mem[a]' },
-    { asm: 'ld   x2, b', regs: { x1: 'a', x2: 'b' }, note: 'x2 ← mem[b]' },
+    { asm: 'ld   x1, a', regs: { x1: 'a' }, note: 'x1 ← mem[a] · independent' },
+    { asm: 'ld   x2, b', regs: { x1: 'a', x2: 'b' }, note: 'x2 ← mem[b] · independent of x1' },
     {
       asm: 'add  x3, x1, x2',
       regs: { x1: 'a', x2: 'b', x3: '(a+b)' },
@@ -71,7 +83,7 @@ const RISC = {
     {
       asm: 'ld   x4, c',
       regs: { x1: 'a', x2: 'b', x3: '(a+b)', x4: 'c' },
-      note: 'x4 ← mem[c]',
+      note: 'x4 ← mem[c] · independent again',
     },
     {
       asm: 'mul  x5, x3, x4',
@@ -180,11 +192,33 @@ export default function Operands() {
       </div>
 
       <div
+        className="grid grid-cols-2 gap-px border-t lg:grid-cols-4"
+        style={{ borderColor: 'var(--rule)', background: 'var(--rule)' }}
+      >
+        {TRACKS.map((t) => (
+          <div
+            key={t.name}
+            className="flex items-baseline justify-between px-5 py-3"
+            style={{ background: 'var(--bg-soft)' }}
+          >
+            <div className="marker" style={{ color: 'var(--ink-faint)' }}>
+              {t.steps.length} ops
+            </div>
+            <div
+              className="font-mono text-[11px] tabular-nums"
+              style={{ color: 'var(--ink-soft)' }}
+            >
+              ≈{t.bytes}B · chain {t.chain}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div
         className="border-t px-5 py-3 text-xs"
         style={{ borderColor: 'var(--rule)', color: 'var(--ink-faint)' }}
       >
-        Same arithmetic. Three vs five instructions. Implicit operands save
-        bytes; explicit operands buy schedulability.
+        Same arithmetic. Implicit operands save bytes; explicit operands buy schedulability — only the load-store track has independent loads, so a wide back end can issue x1 and x2 in the same cycle. Stack and accumulator chain everything through one architectural location, which is exactly what an out-of-order engine cannot widen.
       </div>
     </div>
   );
