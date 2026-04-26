@@ -3,11 +3,15 @@ import { motion } from 'framer-motion';
 import DieHero from '../components/atlas/DieHero.jsx';
 import EtchedHeadline from '../components/atlas/EtchedHeadline.jsx';
 import MobileBlocks from '../components/atlas/MobileBlocks.jsx';
+import MobileNarrative from '../components/atlas/MobileNarrative.jsx';
 import StageCallout from '../components/atlas/StageCallout.jsx';
 import PluckedStage from '../components/atlas/PluckedStage.jsx';
 import { SCENARIO_STAGES } from '../components/atlas/scenarioStages.js';
 import { useScrollNarrative } from '../components/atlas/useScrollNarrative.js';
-import { useSetNarrativeStage } from '../components/atlas/narrativeContext.jsx';
+import {
+  useSetNarrativeStage,
+  useSetNarrativeActive,
+} from '../components/atlas/narrativeContext.jsx';
 
 const ease = [0.22, 1, 0.36, 1];
 
@@ -38,12 +42,21 @@ export default function Atlas() {
   const { progress, stageIndex, inView, subStageIndex, subStageT } =
     useScrollNarrative(narrativeRef, SCENARIO_STAGES.length, SUB_STAGES);
   const setNarrativeStage = useSetNarrativeStage();
+  const setNarrativeActive = useSetNarrativeActive();
   const stage = SCENARIO_STAGES[stageIndex];
 
   useEffect(() => {
     setNarrativeStage(null);
     return () => setNarrativeStage(null);
   }, [setNarrativeStage]);
+
+  // Publish whether the user is currently inside the narrative scroll
+  // section. App.jsx Layout drops CircuitFlow density when this is true
+  // so we don't paint a rich chip surface under the dim overlay.
+  useEffect(() => {
+    setNarrativeActive(!!inView);
+    return () => setNarrativeActive(false);
+  }, [inView, setNarrativeActive]);
 
   // BG zoom-in reveal — chip comes to foreground over the first 12% of
   // scroll. Simultaneously, --narrative-dim ramps up so the BG fades to
@@ -99,8 +112,10 @@ export default function Atlas() {
             <EtchedHeadline />
             <p className="lede mt-5 max-w-xl">
               A visual encyclopedia of computer architecture. Every concept lives
-              on the die where it actually runs. Scroll to follow a single
-              instruction across the chip — or hover any block to enter.
+              on the die where it actually runs. Scroll
+              <ScrollHintChevron />
+              to follow a single instruction across the chip — or hover any
+              block to enter.
             </p>
           </div>
         </motion.header>
@@ -114,7 +129,8 @@ export default function Atlas() {
           <div className="hidden md:block">
             <DieHero hovered={hovered} setHovered={setHovered} />
           </div>
-          <div className="md:hidden">
+          <div className="md:hidden flex flex-col gap-10">
+            <MobileNarrative />
             <MobileBlocks />
           </div>
         </motion.section>
@@ -217,6 +233,46 @@ function StageStageBig({ stage, stageIndex, visible }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * ScrollHintChevron — small downward chevron tucked inline next to
+ * "Scroll" in the lede. Bobs once every couple seconds to read as a
+ * first-time hint without becoming a metronome. The bob is the only
+ * thing that draws the eye to it. Disappears once the user has scrolled
+ * past the hero so it stops competing with the narrative breadcrumb.
+ */
+function ScrollHintChevron() {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    const onScroll = () => {
+      if (window.scrollY > 80) setHidden(true);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  return (
+    <span
+      aria-hidden="true"
+      className="atlas-scroll-hint"
+      style={{
+        display: 'inline-flex',
+        width: '0.9em',
+        height: '0.9em',
+        marginLeft: '0.18em',
+        marginRight: '0.05em',
+        verticalAlign: '-0.12em',
+        color: 'rgb(var(--pad-glow))',
+        opacity: hidden ? 0 : 1,
+        transition: 'opacity 320ms ease',
+      }}
+    >
+      <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none"
+        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="6 9 12 15 18 9" />
+      </svg>
+    </span>
   );
 }
 

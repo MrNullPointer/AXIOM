@@ -1,7 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import Wordmark from './Wordmark.jsx';
-import ThemeToggle from './ThemeToggle.jsx';
 import MotionToggle from './MotionToggle.jsx';
 
 export default function Navbar({ onOpenSearch }) {
@@ -29,7 +28,6 @@ export default function Navbar({ onOpenSearch }) {
               <Search size={15} aria-hidden="true" />
             </IconButton>
             <MotionToggle />
-            <ThemeToggle />
           </div>
         </nav>
       </div>

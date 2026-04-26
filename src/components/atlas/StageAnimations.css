@@ -18,6 +18,53 @@
   color: var(--ink);
 }
 
+/* ============== Plucked card body — responsive layout ============== */
+/* The plucked card holds a fixed-width side panel (chip locator + block
+   name) next to a flexible viz column. Above ~1280px both columns get
+   the room they need. Below that, the card collapses to a single
+   column: the side panel becomes a compact horizontal strip across the
+   top showing only the active block name and a slim chip locator. */
+.atlas-plucked-card { pointer-events: none; }
+
+.atlas-plucked-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+}
+.atlas-plucked-side {
+  border-right: 1px solid currentColor;
+  padding-right: 20px;
+  min-height: 0;
+}
+
+@media (max-width: 1280px) {
+  .atlas-plucked-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 14px;
+  }
+  .atlas-plucked-side {
+    border-right: none;
+    border-bottom: 1px solid currentColor;
+    padding-right: 0;
+    padding-bottom: 12px;
+  }
+  /* Side panel goes horizontal: hide chip locator SVG + the ancillary
+     blurb, keep only the heading row + active block name. */
+  .atlas-side-thumbnail > div:first-child > svg,
+  .atlas-side-thumbnail > div:last-child > div:last-child {
+    display: none;
+  }
+  .atlas-side-thumbnail {
+    flex-direction: row !important;
+    align-items: baseline;
+    gap: 16px !important;
+    padding: 0 !important;
+  }
+}
+
 .sv-svg {
   width: 100%;
   flex: 1;

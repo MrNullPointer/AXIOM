@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ACCENT_VAR, DOMAINS } from '../../data/domains.js';
 import { conceptsByDomain } from '../../concepts/index.js';
-import { useTheme } from '../../app/theme.jsx';
 
 /**
  * DieHero — the focal chip illustration.
@@ -31,14 +30,9 @@ export default function DieHero({
   const tiltRef = useRef(null);
   const specRef = useRef(null);
   const foilRef = useRef(null);
-  const { theme } = useTheme();
-  const themeRef = useRef(theme);
   const hoveredRef = useRef(hovered);
   const highlightRef = useRef(highlightDomain);
 
-  useEffect(() => {
-    themeRef.current = theme;
-  }, [theme]);
   useEffect(() => {
     hoveredRef.current = hovered;
   }, [hovered]);
@@ -60,23 +54,13 @@ export default function DieHero({
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const PAL = {
-      dark: {
-        m1: 'rgba(125, 249, 255, 0.20)',
-        m2: 'rgba(125, 249, 255, 0.12)',
-        gate: 'rgba(245, 180, 97, 0.45)',
-        via: 'rgba(255, 255, 255, 0.55)',
-        electron: '#7df9ff',
-        electronCore: '#ffffff',
-      },
-      light: {
-        m1: 'rgba(29, 58, 122, 0.30)',
-        m2: 'rgba(29, 58, 122, 0.18)',
-        gate: 'rgba(140, 65, 20, 0.55)',
-        via: 'rgba(14, 26, 43, 0.70)',
-        electron: '#b86a1f',
-        electronCore: '#3a2511',
-      },
+    const palette = {
+      m1: 'rgba(125, 249, 255, 0.20)',
+      m2: 'rgba(125, 249, 255, 0.12)',
+      gate: 'rgba(245, 180, 97, 0.45)',
+      via: 'rgba(255, 255, 255, 0.55)',
+      electron: '#7df9ff',
+      electronCore: '#ffffff',
     };
 
     let width = 0;
@@ -111,7 +95,6 @@ export default function DieHero({
       off.height = canvas.height;
       const c = off.getContext('2d');
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const palette = themeRef.current === 'light' ? PAL.light : PAL.dark;
       const highlight = highlightRef.current;
 
       for (const b of blocks) {
@@ -176,7 +159,6 @@ export default function DieHero({
     }
 
     function spawnElectron() {
-      const palette = themeRef.current === 'light' ? PAL.light : PAL.dark;
       const highlight = highlightRef.current;
       const hover = hoveredRef.current;
       const target = highlight || hover;
@@ -275,18 +257,9 @@ export default function DieHero({
     });
     ro.observe(wrap);
 
-    const themeWatcher = setInterval(() => {
-      const cur = document.documentElement.dataset.theme;
-      if (cur !== themeRef.current) {
-        themeRef.current = cur;
-        buildLayout();
-      }
-    }, 250);
-
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
-      clearInterval(themeWatcher);
     };
   }, []);
 

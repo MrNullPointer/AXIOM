@@ -56,22 +56,11 @@ export default function EtchCursor() {
     resize();
     window.addEventListener('resize', resize);
 
-    // Theme-aware copper. Read once, refresh on theme attribute change.
-    let copperRGB = readCopper();
-    function readCopper() {
-      const raw = getComputedStyle(document.documentElement)
-        .getPropertyValue('--accent-amber')
-        .trim();
-      const parsed = parseColor(raw);
-      return parsed || [245, 180, 97];
-    }
-    const themeObserver = new MutationObserver(() => {
-      copperRGB = readCopper();
-    });
-    themeObserver.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    });
+    // Read --accent-amber once. Theme is fixed (dark-only), so no observer.
+    const copperRaw = getComputedStyle(document.documentElement)
+      .getPropertyValue('--accent-amber')
+      .trim();
+    const copperRGB = parseColor(copperRaw) || [245, 180, 97];
 
     let mx = window.innerWidth / 2;
     let my = window.innerHeight / 2;
@@ -175,7 +164,6 @@ export default function EtchCursor() {
       document.removeEventListener('mouseleave', onLeave);
       window.removeEventListener('mousedown', onDown);
       window.removeEventListener('mouseup', onUp);
-      themeObserver.disconnect();
       document.body.classList.remove('cursor-hidden');
     };
   }, [level]);

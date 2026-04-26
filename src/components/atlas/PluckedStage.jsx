@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import StageAnimation from './StageAnimations.jsx';
 import SideBlockThumbnail from './SideBlockThumbnail.jsx';
 import { STAGE_SOURCE_RECTS, STAGE_COLORS } from './scenarioStages.js';
@@ -33,6 +33,7 @@ const SUBSTAGE_TO_DEPTH = [0, 1, 2, 1, 0];
 export default function PluckedStage({ stage, subStageIndex = 0, subStageT = 0, visible }) {
   const depthIndex = SUBSTAGE_TO_DEPTH[subStageIndex] ?? 0;
   const ascending = subStageIndex > 2;
+  const reduce = useReducedMotion();
   return (
     <AnimatePresence mode="popLayout">
       {visible && stage ? (
@@ -43,25 +44,31 @@ export default function PluckedStage({ stage, subStageIndex = 0, subStageT = 0, 
           subStageT={subStageT}
           depthIndex={depthIndex}
           ascending={ascending}
+          reduce={reduce}
         />
       ) : null}
     </AnimatePresence>
   );
 }
 
-function Card({ stage, subStageIndex, subStageT, depthIndex, ascending }) {
+function Card({ stage, subStageT, depthIndex, ascending, reduce }) {
   const src = STAGE_SOURCE_RECTS[stage.id] || { x: 0.5, y: 0.5, w: 0.05, h: 0.05 };
   const color = STAGE_COLORS[stage.id] || 'rgb(var(--pad-glow))';
 
-  const initial = {
-    top: `${src.y * 100}vh`,
-    left: `${src.x * 100}vw`,
-    width: `${src.w * 100}vw`,
-    height: `${src.h * 100}vh`,
-    opacity: 0,
-    filter: 'blur(8px)',
-    scale: 0.6,
-  };
+  // Reduced-motion: snap from the same end-state, skip the pluck physics
+  // and the depth-crossfade spring entirely. The card still cross-fades
+  // softly via opacity so AnimatePresence keying stays meaningful.
+  const initial = reduce
+    ? { top: '50vh', left: '50vw', width: 'min(1100px, 95vw)', height: 'min(620px, 84vh)', opacity: 0, x: '-50%', y: '-50%' }
+    : {
+        top: `${src.y * 100}vh`,
+        left: `${src.x * 100}vw`,
+        width: `${src.w * 100}vw`,
+        height: `${src.h * 100}vh`,
+        opacity: 0,
+        filter: 'blur(8px)',
+        scale: 0.6,
+      };
   const animate = {
     top: '50vh',
     left: '50vw',
@@ -73,7 +80,20 @@ function Card({ stage, subStageIndex, subStageT, depthIndex, ascending }) {
     x: '-50%',
     y: '-50%',
   };
-  const exit = { ...initial, transition: { duration: 0.42 } };
+  const exit = reduce
+    ? { ...initial, transition: { duration: 0.18 } }
+    : { ...initial, transition: { duration: 0.42 } };
+
+  const cardTransition = reduce
+    ? { duration: 0.25 }
+    : {
+        type: 'spring',
+        stiffness: 78,
+        damping: 20,
+        mass: 0.9,
+        opacity: { duration: 0.35 },
+        filter: { duration: 0.35 },
+      };
 
   return (
     <motion.div
@@ -81,18 +101,10 @@ function Card({ stage, subStageIndex, subStageT, depthIndex, ascending }) {
       initial={initial}
       animate={animate}
       exit={exit}
-      transition={{
-        type: 'spring',
-        stiffness: 78,
-        damping: 20,
-        mass: 0.9,
-        opacity: { duration: 0.35 },
-        filter: { duration: 0.35 },
-      }}
+      transition={cardTransition}
       style={{
         position: 'fixed',
         zIndex: 30,
-        pointerEvents: 'none',
         '--stage-color': color,
       }}
     >
@@ -150,55 +162,50 @@ function Card({ stage, subStageIndex, subStageT, depthIndex, ascending }) {
             so the same dot lights on the way down and on the way back). */}
         <DepthBreadcrumb depthIndex={depthIndex} ascending={ascending} color={color} />
 
-        {/* Two-column body: left = side block context (chip locator +
-            block name); right = pure-physics deep visualization with
-            no inline labels (the side panel provides all context). */}
-        <div
-          style={{
-            flex: 1,
-            minHeight: 0,
-            display: 'grid',
-            gridTemplateColumns: '220px 1fr',
-            gap: '24px',
-          }}
-        >
-          {/* Left: side context panel */}
-          <div
-            style={{
-              borderRight: `1px solid ${color}22`,
-              paddingRight: '20px',
-            }}
-          >
+        {/* Two-column body. Below the layout breakpoint (~1280px) it
+            collapses to a single column with the side-panel acting as a
+            compact horizontal strip — see plucked-card.css. */}
+        <div className="atlas-plucked-body">
+          <div className="atlas-plucked-side" style={{ borderColor: `${color}22` }}>
             <SideBlockThumbnail
               activeBlockId={stage.blockId}
               color={color}
             />
           </div>
 
-          {/* Right: the deep visualization, label-free */}
           <div style={{ position: 'relative', minHeight: 0 }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${stage.id}-${depthIndex}`}
-                initial={{
-                  opacity: 0,
-                  // Going down: scale up from 0.92 (zoom-in feel).
-                  // Coming back up: scale down from 1.08 (zoom-out feel).
-                  scale: ascending ? 1.08 : 0.92,
-                  y: ascending ? -8 : 8,
-                }}
+                initial={
+                  reduce
+                    ? { opacity: 0 }
+                    : {
+                        opacity: 0,
+                        scale: ascending ? 1.08 : 0.92,
+                        y: ascending ? -8 : 8,
+                      }
+                }
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{
-                  opacity: 0,
-                  scale: ascending ? 0.92 : 1.08,
-                  y: ascending ? 8 : -8,
-                }}
-                transition={{
-                  type: 'spring',
-                  stiffness: 110,
-                  damping: 22,
-                  opacity: { duration: 0.32 },
-                }}
+                exit={
+                  reduce
+                    ? { opacity: 0 }
+                    : {
+                        opacity: 0,
+                        scale: ascending ? 0.92 : 1.08,
+                        y: ascending ? 8 : -8,
+                      }
+                }
+                transition={
+                  reduce
+                    ? { duration: 0.18 }
+                    : {
+                        type: 'spring',
+                        stiffness: 110,
+                        damping: 22,
+                        opacity: { duration: 0.32 },
+                      }
+                }
                 style={{ width: '100%', height: '100%', position: 'absolute' }}
               >
                 <StageAnimation
@@ -229,16 +236,16 @@ function DepthBreadcrumb({ depthIndex, ascending, color }) {
         fontSize: '9px',
         letterSpacing: '0.22em',
         textTransform: 'uppercase',
-        color: 'var(--ink-faint)',
+        color: 'var(--ink-soft)',
       }}
     >
-      <span style={{ opacity: 0.7 }}>depth</span>
+      <span style={{ opacity: 0.85 }}>depth</span>
       {/* Direction arrow — down while descending, up while resurfacing */}
       <span
         aria-hidden="true"
         style={{
           color,
-          opacity: 0.7,
+          opacity: 0.85,
           transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
           transform: ascending ? 'rotate(180deg)' : 'rotate(0deg)',
           display: 'inline-block',
@@ -263,7 +270,13 @@ function DepthBreadcrumb({ depthIndex, ascending, color }) {
               transition: 'width 320ms cubic-bezier(0.22, 1, 0.36, 1), background 320ms ease',
             }}
           />
-          <span style={{ color: i === depthIndex ? color : 'var(--ink-faint)', opacity: i === depthIndex ? 1 : 0.4 }}>
+          <span
+            style={{
+              color: i === depthIndex ? color : 'var(--ink-soft)',
+              fontWeight: i === depthIndex ? 500 : 400,
+              opacity: i === depthIndex ? 1 : 0.55,
+            }}
+          >
             L{i} · {labels[i]}
           </span>
         </span>
@@ -271,8 +284,3 @@ function DepthBreadcrumb({ depthIndex, ascending, color }) {
     </div>
   );
 }
-
-// SourceIndicator removed — the SideBlockThumbnail inside the card now
-// communicates "you are here on the chip" via the highlighted block in
-// the mini-floorplan. The viewport-fixed glowing frame was redundant
-// and (especially for the wide BUS stage) felt like clutter.

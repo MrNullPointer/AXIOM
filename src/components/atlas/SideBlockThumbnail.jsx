@@ -17,7 +17,7 @@ export default function SideBlockThumbnail({ activeBlockId, color }) {
   // Floorplan grid is 12 cols × 8 rows
   return (
     <div
-      className="flex h-full w-full flex-col items-stretch justify-between"
+      className="atlas-side-thumbnail flex h-full w-full flex-col items-stretch justify-between"
       style={{
         gap: '14px',
         padding: '4px 8px 4px 0',

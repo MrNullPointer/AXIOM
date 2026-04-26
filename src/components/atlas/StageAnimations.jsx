@@ -527,25 +527,76 @@ function SramL2({ accent }) {
 // ===================================================================
 
 function BusL0({ accent }) {
-  const wires = 8;
+  // Ring topology — four cores arranged around an inner ring track.
+  // Each core has a stop; the request rides the ring clockwise from
+  // C0 (issuer) through one stop to the L3 slice on the opposite side.
+  // Spokes show the data bus (D7..D0) feeding into each core.
+  const stops = [
+    { id: 'C0', cx: 80,  cy: 200, label: 'Core 0',   role: 'issuer' },
+    { id: 'C1', cx: 300, cy: 80,  label: 'Core 1' },
+    { id: 'C2', cx: 520, cy: 200, label: 'L3 Slice', role: 'target' },
+    { id: 'C3', cx: 300, cy: 320, label: 'Core 3' },
+  ];
   return (
     <Host accent={accent}>
       <svg viewBox="0 0 600 400" className="sv-svg" preserveAspectRatio="xMidYMid meet">
-        <L x={300} y={22} text="Data Bus · 8 Parallel Traces" color={accent} em={0.85} size={11} />
-        {Array.from({ length: wires }).map((_, i) => {
-          const y = 50 + i * 40;
+        <L x={300} y={22} text="Ring Interconnect · 4 Stops · Bidirectional" color={accent} em={0.85} size={11} />
+
+        {/* Ring track — outer + inner rails + clockwise direction arrow */}
+        <ellipse cx="300" cy="200" rx="200" ry="110" fill="none"
+          stroke={accent} strokeOpacity="0.22" strokeWidth="1.4" />
+        <ellipse cx="300" cy="200" rx="186" ry="96" fill="none"
+          stroke={accent} strokeOpacity="0.14" strokeWidth="0.8"
+          strokeDasharray="3 4" />
+
+        {/* Animated packet — rides the ring clockwise from C0 to C2 */}
+        <circle r="5" fill={accent}
+          style={{ filter: `drop-shadow(0 0 8px ${accent})` }}>
+          <animateMotion dur="3.2s" repeatCount="indefinite"
+            path="M 100 200 A 200 110 0 0 1 500 200" />
+        </circle>
+        {/* Trailing decay packets so the ring reads as continuous traffic */}
+        {[0.6, 1.4, 2.2].map((delay, i) => (
+          <circle key={i} r="3" fill={accent} fillOpacity="0.55">
+            <animateMotion dur="3.2s" repeatCount="indefinite"
+              begin={`${delay}s`}
+              path="M 100 200 A 200 110 0 0 1 500 200" />
+          </circle>
+        ))}
+
+        {/* Stops */}
+        {stops.map((s) => {
+          const isCore = s.role === 'issuer';
+          const isTgt  = s.role === 'target';
+          const r = isCore || isTgt ? 22 : 18;
           return (
-            <g key={i}>
-              <line x1="40" y1={y} x2="560" y2={y} stroke={accent}
-                strokeOpacity="0.22" strokeWidth="1" />
-              <L x={28} y={y + 4} text={`D${wires - 1 - i}`} color={accent} anchor="end" em={0.65} size={10} />
-              <rect x="40" y={y - 4} width="56" height="8"
-                fill={accent} className={`sv-bus-edge sv-bus-edge-${i}`}
-                style={{ animationDelay: `${i * 0.06}s` }} />
+            <g key={s.id}>
+              <circle cx={s.cx} cy={s.cy} r={r + 6} fill={accent} fillOpacity="0.06" />
+              <circle cx={s.cx} cy={s.cy} r={r} fill={accent}
+                fillOpacity={isCore ? 0.55 : isTgt ? 0.45 : 0.18}
+                stroke={accent}
+                strokeOpacity={isCore || isTgt ? 0.95 : 0.45}
+                strokeWidth={isCore || isTgt ? 1.4 : 0.9}
+                style={{
+                  filter: isCore || isTgt
+                    ? `drop-shadow(0 0 10px ${accent})`
+                    : 'none',
+                }} />
+              <L x={s.cx} y={s.cy + 4} text={s.id} color={accent}
+                em={isCore || isTgt ? 1 : 0.85} size={11} />
+              <L x={s.cx} y={s.cy + r + 18} text={s.label} color={accent}
+                em={isCore || isTgt ? 0.85 : 0.55} size={9} />
             </g>
           );
         })}
-        <L x={300} y={388} text="Core → L3 Slice · 1 Bit/Wire/Cycle" color={accent} em={0.6} size={9} />
+
+        {/* "From" / "to" arrowed notation under issuer + target */}
+        <L x={80} y={278} text="↑ issue" color={accent} em={0.7} size={9} />
+        <L x={520} y={278} text="↓ recv" color={accent} em={0.7} size={9} />
+
+        <L x={300} y={388}
+          text="64-Byte Packet · 1 Hop / Cycle · 2 Hops to L3"
+          color={accent} em={0.6} size={9} />
       </svg>
     </Host>
   );
@@ -821,27 +872,54 @@ function DramL2({ accent }) {
 // ===================================================================
 
 function CoherenceL0({ accent }) {
+  // Per-core L1 detail: each core shows two L1 cache rows (data + tag),
+  // with the issuer's line shaded as Modified (M) and a snoop in flight
+  // to the others. The directory in the centre shows the sharer bitmap.
   return (
     <Host accent={accent}>
       <svg viewBox="0 0 600 400" className="sv-svg" preserveAspectRatio="xMidYMid meet">
         {[
-          { id: 'C0', x: 40, y: 40, lit: true },
-          { id: 'C1', x: 460, y: 40, lit: false },
-          { id: 'C2', x: 40, y: 240, lit: false },
-          { id: 'C3', x: 460, y: 240, lit: false },
-        ].map((c, i) => (
-          <g key={i} transform={`translate(${c.x}, ${c.y})`}>
-            <rect width="100" height="120" rx="3" fill={c.lit ? accent : 'none'}
-              fillOpacity={c.lit ? 0.25 : 0}
-              stroke={accent} strokeOpacity={c.lit ? 0.85 : 0.4} strokeWidth="1"
-              className={c.lit ? 'sv-coh-core-lit' : ''} />
-            <L x={50} y={-6} text={c.id} color={accent} em={0.85} size={11} />
-            {[0, 1, 2, 3].map((j) => (
-              <rect key={j} x={10 + (j % 2) * 42} y={20 + Math.floor(j / 2) * 42}
-                width="32" height="32" fill={accent} fillOpacity="0.18" />
-            ))}
-          </g>
-        ))}
+          { id: 'C0', x: 40,  y: 40,  state: 'M' },
+          { id: 'C1', x: 460, y: 40,  state: 'I' },
+          { id: 'C2', x: 40,  y: 240, state: 'I' },
+          { id: 'C3', x: 460, y: 240, state: 'I' },
+        ].map((c, i) => {
+          const lit = c.state === 'M';
+          return (
+            <g key={i} transform={`translate(${c.x}, ${c.y})`}>
+              <rect width="100" height="120" rx="3" fill={lit ? accent : 'none'}
+                fillOpacity={lit ? 0.18 : 0}
+                stroke={accent} strokeOpacity={lit ? 0.85 : 0.4} strokeWidth="1"
+                className={lit ? 'sv-coh-core-lit' : ''} />
+              <L x={50} y={-6} text={c.id} color={accent} em={0.85} size={11} />
+
+              {/* L1 mini — two rows of 4 ways each. Top row is the line of
+                  interest; the bottom row is "neighbours". */}
+              <L x={6}  y={28} text="L1" color={accent} em={0.55} size={7} anchor="start" />
+              <L x={94} y={28} text={c.state} color={accent}
+                anchor="end" em={lit ? 1 : 0.5} size={9} />
+              {[0, 1].map((row) => (
+                <g key={row} transform={`translate(8, ${30 + row * 36})`}>
+                  {[0, 1, 2, 3].map((w) => {
+                    const target = row === 0 && w === 1;
+                    return (
+                      <rect key={w} x={w * 21} y="0" width="18" height="28" rx="1"
+                        fill={target && lit ? accent : 'none'}
+                        fillOpacity={target && lit ? 0.85 : 0}
+                        stroke={accent}
+                        strokeOpacity={target ? 0.85 : 0.3}
+                        strokeWidth={target ? 1 : 0.6} />
+                    );
+                  })}
+                </g>
+              ))}
+              {/* Cacheline tag swatch */}
+              <rect x="8" y="100" width="84" height="14" rx="1"
+                fill="none" stroke={accent} strokeOpacity="0.35" strokeWidth="0.6" />
+              <L x={50} y={111} text="0x4080" color={accent} em={0.55} size={8} />
+            </g>
+          );
+        })}
 
         <rect x="220" y="150" width="160" height="100" rx="3" fill={accent}
           fillOpacity="0.2" stroke={accent} strokeOpacity="0.7" strokeWidth="1" />
@@ -968,49 +1046,59 @@ function CoherenceL2({ accent }) {
 
 function FillL0({ accent }) {
   const levels = [
-    { y: 40, sets: 16, delay: 0, label: 'L3 · 8 MB' },
-    { y: 160, sets: 12, delay: 0.7, label: 'L2 · 256 KB' },
-    { y: 280, sets: 8, delay: 1.4, label: 'L1 · 32 KB' },
+    { y: 40,  sets: 16, delay: 0,   label: 'L3 · 8 MB',  step: '1', cycles: 't+0' },
+    { y: 160, sets: 12, delay: 0.7, label: 'L2 · 256 KB', step: '2', cycles: 't+5' },
+    { y: 280, sets: 8,  delay: 1.4, label: 'L1 · 32 KB', step: '3', cycles: 't+10' },
   ];
   return (
     <Host accent={accent}>
       <svg viewBox="0 0 600 400" className="sv-svg" preserveAspectRatio="xMidYMid meet">
+        <L x={300} y={22} text="Cacheline Cascade · L3 → L2 → L1"
+          color={accent} em={0.85} size={11} />
         {levels.map((lvl, levelIdx) => (
           <g key={levelIdx} transform={`translate(0, ${lvl.y})`}>
-            <L x={20} y={32} text={lvl.label} color={accent} anchor="start" em={0.85} size={11} />
-            <g transform="translate(120, 0)">
+            {/* Order pip — numbered circle anchors the level */}
+            <circle cx="20" cy="30" r="11" fill={accent} fillOpacity="0.18"
+              stroke={accent} strokeOpacity="0.85" strokeWidth="1" />
+            <L x={20} y={34} text={lvl.step} color={accent} em={1} size={11} />
+            <L x={42} y={26} text={lvl.label} color={accent} anchor="start" em={0.85} size={11} />
+            <L x={42} y={40} text={lvl.cycles} color={accent} anchor="start" em={0.55} size={9} />
+            <g transform="translate(140, 0)">
               {Array.from({ length: lvl.sets }).map((_, s) => (
-                <rect key={s} x={s * 32} y="0" width="28" height="60"
+                <rect key={s} x={s * 30} y="0" width="26" height="60"
                   fill="none" stroke={accent} strokeOpacity="0.25" strokeWidth="0.7" />
               ))}
               <g className={`sv-fill-line sv-fill-line-${levelIdx}`}
                 style={{ animationDelay: `${lvl.delay}s` }}>
                 {Array.from({ length: 8 }).map((_, c) => (
-                  <rect key={c} x={c * 3.2 + 4} y="6" width="2.6" height="48"
+                  <rect key={c} x={c * 3 + 4} y="6" width="2.4" height="48"
                     fill={accent} opacity="0.95" />
                 ))}
               </g>
               {levelIdx < 2 && (
                 <g className={`sv-fill-victim sv-fill-victim-${levelIdx}`}
                   style={{ animationDelay: `${lvl.delay + 0.3}s` }}>
-                  <rect x={lvl.sets * 32 - 28} y="6" width="28" height="48"
+                  <rect x={lvl.sets * 30 - 26} y="6" width="26" height="48"
                     fill="none" stroke={accent} strokeOpacity="0.55"
                     strokeDasharray="2 2" strokeWidth="0.8" />
-                  <L x={lvl.sets * 32 - 14} y={70} text="LRU evict" color={accent} em={0.55} size={8} />
+                  <L x={lvl.sets * 30 - 13} y={70} text="LRU evict" color={accent} em={0.55} size={8} />
                 </g>
               )}
             </g>
           </g>
         ))}
-        <g opacity="0.55">
-          <path d="M 70 100 L 70 160 L 64 154 M 70 160 L 76 154"
-            stroke={accent} strokeWidth="1.2" fill="none"
+        {/* Cascade arrows — staggered to match fill timing */}
+        <g opacity="0.65">
+          <path d="M 20 110 L 20 152 L 14 146 M 20 152 L 26 146"
+            stroke={accent} strokeWidth="1.4" fill="none"
             className="sv-fill-arrow sv-fill-arrow-0" />
-          <path d="M 70 220 L 70 280 L 64 274 M 70 280 L 76 274"
-            stroke={accent} strokeWidth="1.2" fill="none"
+          <path d="M 20 230 L 20 272 L 14 266 M 20 272 L 26 266"
+            stroke={accent} strokeWidth="1.4" fill="none"
             className="sv-fill-arrow sv-fill-arrow-1" />
         </g>
-        <L x={300} y={388} text="64-Byte Line · Installed at Every Level" color={accent} em={0.6} size={9} />
+        <L x={300} y={388}
+          text="64-Byte Line · Installed at Every Level"
+          color={accent} em={0.6} size={9} />
       </svg>
     </Host>
   );

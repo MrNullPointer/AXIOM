@@ -3,8 +3,11 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------- *
- * Theme tokens. Two complete identities, not one inverted palette.
+ * Theme tokens. Axiom is dark-only; tokens live on :root and on the
+ * legacy [data-theme='dark'] selector so any historical reference
+ * keeps resolving. Light mode was removed — see app/theme.jsx.
  * ---------------------------------------------------------------- */
+:root,
 :root[data-theme='dark'] {
   --bg: #05060a;
   --bg-soft: #0a0c12;
@@ -25,28 +28,7 @@
      readable over the busy die-shot without showing visible chrome. */
   --hero-fade: rgba(2, 4, 8, 0.70);
   --hero-fade-mid: rgba(2, 4, 8, 0.40);
-}
-
-:root[data-theme='light'] {
-  --bg: #f4efe4;
-  --bg-soft: #ece6d6;
-  --bg-glass: rgba(248, 244, 234, 0.7);
-  --ink: #0e1a2b;
-  --ink-soft: #2d3b52;
-  --ink-faint: #6b7787;
-  --rule: rgba(14, 26, 43, 0.12);
-  --rule-strong: rgba(14, 26, 43, 0.25);
-  --glass-bg: rgba(255, 252, 244, 0.55);
-  --glass-border: rgba(14, 26, 43, 0.14);
-  --accent-1: #1d3a7a;
-  --accent-2: #b86a1f;
-  --accent-3: #2a6f4a;
-  --accent-warn: #b3361f;
-  --accent-amber: #b86a1f;
-  /* Light-mode hero vignette — pale wash so the dark title stays crisp
-     over warmer busy areas. */
-  --hero-fade: rgba(244, 239, 228, 0.85);
-  --hero-fade-mid: rgba(244, 239, 228, 0.55);
+  --pad-glow: 245, 180, 97;
 }
 
 * {
@@ -634,16 +616,6 @@ body {
   );
 }
 
-:root[data-theme='light'] .atlas-spotlight {
-  background: radial-gradient(
-    circle 240px at var(--spot-x) var(--spot-y),
-    rgba(184, 106, 31, 0.18) 0%,
-    rgba(184, 106, 31, 0.10) 18%,
-    rgba(29, 58, 122, 0.05) 45%,
-    transparent 70%
-  );
-}
-
 @media (prefers-reduced-motion: reduce) {
   .atlas-bg-tilt { transform: none; will-change: auto; }
   .atlas-spotlight { display: none; }
@@ -671,15 +643,22 @@ body.cursor-hidden *::after {
  * The element gets a faint copper outline + outer glow on hover and
  * keyboard-focus, like a chip pad responding to a probe.
  *
- * --pad-glow is the RGB triplet used in the rgba() shadow expressions.
- * It tracks the theme so dark theme uses bright copper and light theme
- * uses a deeper, warmer copper that reads on the beige background.
+ * --pad-glow is the RGB triplet used in the rgba() shadow expressions
+ * and lives on :root above (dark theme is the only theme).
  * ---------------------------------------------------------------- */
-:root[data-theme='dark'] {
-  --pad-glow: 245, 180, 97;
+/* Lede chevron — first-time scroll hint next to the "Scroll" call-out.
+   Bobs once every ~2.4s with a long rest so it reads as an invitation,
+   not a metronome. Disabled under prefers-reduced-motion. */
+.atlas-scroll-hint svg {
+  animation: atlas-scroll-hint-bob 2.4s ease-in-out infinite;
 }
-:root[data-theme='light'] {
-  --pad-glow: 184, 106, 31;
+@keyframes atlas-scroll-hint-bob {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.65; }
+  72%           { transform: translateY(0.18em); opacity: 1; }
+  84%           { transform: translateY(0); opacity: 0.65; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas-scroll-hint svg { animation: none; opacity: 0.65; }
 }
 
 .pad {
