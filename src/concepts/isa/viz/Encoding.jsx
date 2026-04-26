@@ -2,51 +2,79 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 /**
- * EncodingVisualizer — same instruction `add x5, x6, x7` decoded across three
- * architectures. Hover any field to see what those bits mean across all of them.
+ * EncodingVisualizer — same instruction `add x5, x6, x7` decoded across
+ * three architectures. Hover any role chip to see how that semantic field
+ * is laid out under each contract.
+ *
+ * Field roles (semantic, not bit-positional):
+ *   prefix      — REX/VEX/EVEX or sub-opcode-class bits (x86, ARM)
+ *   opcode      — primary operation selector
+ *   funct       — secondary function bits that pick a specific op
+ *   addr-mode   — ModR/M.mod or ARM shift-type bits selecting addressing
+ *   src1        — first source register (rs1, Rn, r/m)
+ *   src2        — second source register (rs2, Rm, reg)
+ *   dest        — destination register (rd, Rd, r/m)
+ *   imm         — immediate / shift amount (when present)
+ *
+ * Bit-position annotations follow each architecture's reference manual:
+ *   RISC-V Unprivileged ISA spec, R-type:    funct7 | rs2 | rs1 | funct3 | rd | opcode
+ *   ARM A64 ADD (shifted register, 64-bit):  sf|0|0 | 01011 | shift | 0 | Rm | imm6 | Rn | Rd
+ *   x86-64 ADD r/m64, r64:                   REX(0x48) + opcode(0x01) + ModR/M(mod|reg|r/m)
  */
-const FIELDS = ['opcode', 'dest', 'source 1', 'source 2', 'function'];
+
+const FIELD_ROLES = [
+  'prefix',
+  'opcode',
+  'funct',
+  'addr-mode',
+  'src1',
+  'src2',
+  'dest',
+];
 
 const ARCHES = [
   {
-    name: 'RISC-V',
+    name: 'RISC-V (RV64I R-type)',
     asm: 'add x5, x6, x7',
-    encoding: '32-bit fixed',
+    encoding: '32-bit fixed · R-type',
     bytes: 4,
+    note: 'funct7 | rs2 | rs1 | funct3 | rd | opcode (MSB → LSB)',
     bits: [
-      { label: 'opcode', value: '0110011', span: 7, color: 'var(--accent-1)' },
-      { label: 'dest', value: '00101', span: 5, color: 'var(--accent-2)' },
-      { label: 'function', value: '000', span: 3, color: 'var(--accent-3)' },
-      { label: 'source 1', value: '00110', span: 5, color: 'var(--accent-2)' },
-      { label: 'source 2', value: '00111', span: 5, color: 'var(--accent-2)' },
-      { label: 'function', value: '0000000', span: 7, color: 'var(--accent-3)' },
+      { role: 'funct',  label: 'funct7',  value: '0000000', span: 7, range: '[31:25]' },
+      { role: 'src2',   label: 'rs2',     value: '00111',   span: 5, range: '[24:20]' },
+      { role: 'src1',   label: 'rs1',     value: '00110',   span: 5, range: '[19:15]' },
+      { role: 'funct',  label: 'funct3',  value: '000',     span: 3, range: '[14:12]' },
+      { role: 'dest',   label: 'rd',      value: '00101',   span: 5, range: '[11:7]'  },
+      { role: 'opcode', label: 'opcode',  value: '0110011', span: 7, range: '[6:0]'   },
     ],
   },
   {
-    name: 'ARM (AArch64)',
+    name: 'ARM AArch64 (ADD shifted-register)',
     asm: 'add x5, x6, x7',
-    encoding: '32-bit fixed',
+    encoding: '32-bit fixed · A64',
     bytes: 4,
+    note: 'sf|op|S | 01011 | shift | 0 | Rm | imm6 | Rn | Rd (MSB → LSB)',
     bits: [
-      { label: 'opcode', value: '10001011', span: 8, color: 'var(--accent-1)' },
-      { label: 'function', value: '00000', span: 5, color: 'var(--accent-3)' },
-      { label: 'source 2', value: '00111', span: 5, color: 'var(--accent-2)' },
-      { label: 'function', value: '000000', span: 6, color: 'var(--accent-3)' },
-      { label: 'source 1', value: '00110', span: 5, color: 'var(--accent-2)' },
-      { label: 'dest', value: '00101', span: 5, color: 'var(--accent-2)' },
+      { role: 'opcode',    label: 'sf|op|S|01011', value: '10001011', span: 8, range: '[31:24]' },
+      { role: 'addr-mode', label: 'shift|0',       value: '000',      span: 3, range: '[23:21]' },
+      { role: 'src2',      label: 'Rm',            value: '00111',    span: 5, range: '[20:16]' },
+      { role: 'funct',     label: 'imm6',          value: '000000',   span: 6, range: '[15:10]' },
+      { role: 'src1',      label: 'Rn',            value: '00110',    span: 5, range: '[9:5]'   },
+      { role: 'dest',      label: 'Rd',            value: '00101',    span: 5, range: '[4:0]'   },
     ],
   },
   {
-    name: 'x86-64',
+    name: 'x86-64 (ADD r/m64, r64)',
     asm: 'add rax, rbx',
-    encoding: 'variable, 1–15 bytes',
+    encoding: 'variable · 1–15 bytes',
     bytes: 3,
+    note: 'REX prefix(0x48) | opcode(0x01) | ModR/M(mod | reg | r/m)',
     bits: [
-      { label: 'opcode', value: '01001000', span: 8, color: 'var(--accent-1)' },
-      { label: 'opcode', value: '00000001', span: 8, color: 'var(--accent-1)' },
-      { label: 'dest', value: '11', span: 2, color: 'var(--accent-2)' },
-      { label: 'source 2', value: '011', span: 3, color: 'var(--accent-2)' },
-      { label: 'source 1', value: '000', span: 3, color: 'var(--accent-2)' },
+      { role: 'prefix',    label: 'REX.W',  value: '01001000', span: 8, range: 'prefix byte' },
+      { role: 'opcode',    label: 'opcode', value: '00000001', span: 8, range: 'opcode byte' },
+      { role: 'addr-mode', label: 'mod',    value: '11',       span: 2, range: 'ModR/M[7:6]' },
+      { role: 'src2',      label: 'reg',    value: '011',      span: 3, range: 'ModR/M[5:3]' },
+      { role: 'dest',      label: 'r/m',    value: '000',      span: 3, range: 'ModR/M[2:0]' },
     ],
   },
 ];
@@ -60,12 +88,12 @@ export default function EncodingVisualizer() {
       style={{ borderColor: 'var(--rule-strong)' }}
     >
       <div
-        className="flex items-center justify-between border-b px-5 py-3"
+        className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3"
         style={{ borderColor: 'var(--rule)' }}
       >
-        <div className="marker">same instruction · three contracts</div>
+        <div className="marker">same instruction · three contracts · hover a role to trace it</div>
         <div className="flex flex-wrap gap-2">
-          {FIELDS.map((f) => (
+          {FIELD_ROLES.map((f) => (
             <button
               key={f}
               type="button"
@@ -98,14 +126,27 @@ export default function EncodingVisualizer() {
   );
 }
 
+function roleColor(role) {
+  switch (role) {
+    case 'opcode':    return 'var(--accent-1)';
+    case 'funct':     return 'var(--accent-3)';
+    case 'addr-mode': return 'var(--accent-amber)';
+    case 'prefix':    return 'var(--accent-warn)';
+    case 'src1':
+    case 'src2':
+    case 'dest':      return 'var(--accent-2)';
+    default:          return 'var(--rule-strong)';
+  }
+}
+
 function ArchPanel({ arch, hovered }) {
   const totalBits = arch.bits.reduce((n, b) => n + b.span, 0);
   return (
     <div className="px-5 py-5" style={{ borderColor: 'var(--rule)' }}>
-      <div className="flex items-baseline justify-between">
-        <h4 className="display text-xl">{arch.name}</h4>
-        <div className="marker" style={{ color: 'var(--ink-faint)' }}>
-          {arch.bytes} B · {totalBits}b
+      <div className="flex items-baseline justify-between gap-3">
+        <h4 className="display text-base lg:text-lg leading-tight">{arch.name}</h4>
+        <div className="marker shrink-0" style={{ color: 'var(--ink-faint)' }}>
+          {arch.bytes} B · {totalBits} b
         </div>
       </div>
 
@@ -125,7 +166,7 @@ function ArchPanel({ arch, hovered }) {
         }}
       >
         {arch.bits.map((b, i) => {
-          const dim = hovered && b.label !== hovered;
+          const dim = hovered && b.role !== hovered;
           return (
             <motion.div
               key={i}
@@ -134,7 +175,7 @@ function ArchPanel({ arch, hovered }) {
               transition={{ duration: 0.25 }}
               style={{
                 background: 'var(--bg-soft)',
-                borderTop: `2px solid ${b.color}`,
+                borderTop: `2px solid ${roleColor(b.role)}`,
               }}
             >
               <div
@@ -146,6 +187,9 @@ function ArchPanel({ arch, hovered }) {
               <div className="marker mt-1 text-[9px]" style={{ color: 'var(--ink-faint)' }}>
                 {b.label}
               </div>
+              <div className="marker mt-0.5 text-[8px]" style={{ color: 'var(--ink-faint)', opacity: 0.65 }}>
+                {b.range}
+              </div>
             </motion.div>
           );
         })}
@@ -153,6 +197,9 @@ function ArchPanel({ arch, hovered }) {
 
       <div className="marker mt-4" style={{ color: 'var(--ink-faint)' }}>
         encoding · {arch.encoding}
+      </div>
+      <div className="mt-1 text-[11px] leading-snug" style={{ color: 'var(--ink-faint)' }}>
+        {arch.note}
       </div>
     </div>
   );

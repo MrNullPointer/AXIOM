@@ -29,6 +29,7 @@ const ALL_SECTIONS = [
   { id: 'intuition', label: 'Intuition', alwaysShow: true },
   { id: 'problem', label: 'Problem' },
   { id: 'physics', label: 'Physics' },
+  { id: 'state', label: 'Machine state' },
   { id: 'mechanism', label: 'Mechanism' },
   { id: 'operands', label: 'Operands' },
   { id: 'taxonomy', label: 'Taxonomy' },
@@ -140,6 +141,16 @@ export default function ConceptPage() {
               section={content.physics}
               Viz={slotViz(content.physics.visualizerSlot)}
               minHeight={slotHeight(content.physics.visualizerSlot)}
+            />
+          ) : null}
+
+          {content.state ? (
+            <ProseAndViz
+              id="state"
+              eyebrow="machine state"
+              section={content.state}
+              Viz={slotViz(content.state.visualizerSlot)}
+              minHeight={slotHeight(content.state.visualizerSlot)}
             />
           ) : null}
 
