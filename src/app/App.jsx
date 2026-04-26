@@ -20,10 +20,18 @@ function Layout({ onOpenSearch, density }) {
         className="relative z-10 border-t"
         style={{ borderColor: 'var(--rule)' }}
       >
-        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-3 px-5 py-8 text-xs sm:flex-row sm:items-center sm:px-8"
+        <div
+          className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-3 px-5 py-8 text-xs sm:flex-row sm:items-center sm:px-8"
           style={{ color: 'var(--ink-faint)' }}
         >
           <span>Made with 🤖 in San Diego 🌴</span>
+          <a
+            href="mailto:overclocked@elevendots.ai"
+            className="transition-colors hover:text-[var(--ink)]"
+            style={{ color: 'var(--ink-faint)' }}
+          >
+            overclocked@elevendots.ai
+          </a>
           <span>From electrons to execution.</span>
         </div>
       </footer>
@@ -42,8 +50,16 @@ function ScrollToTop() {
 export default function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const { pathname } = useLocation();
-  // Atlas → denser background; long-form pages → calmer.
-  const density = pathname === '/' ? 1.4 : 0.7;
+  // Three intensity tiers for the BG die-shot:
+  //   • Atlas (`/`)               → 1.4   full chip activity
+  //   • Index / Domain pages       → 0.7   calm but visibly alive
+  //   • Concept long-form pages    → 0.30  minimal, very slow traffic
+  // Long-form prose needs the chip present but never distracting.
+  const density = pathname === '/'
+    ? 1.4
+    : pathname.startsWith('/c/')
+      ? 0.30
+      : 0.7;
 
   return (
     <>

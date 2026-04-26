@@ -40,7 +40,7 @@ export default function MobileBlocks() {
               </div>
               <div
                 className="display mt-2 leading-none"
-                style={{ fontSize: '28px', color: 'var(--ink)' }}
+                style={{ fontSize: '36px', letterSpacing: '-0.015em', color: 'var(--ink)' }}
               >
                 {d.label}
               </div>
@@ -49,8 +49,8 @@ export default function MobileBlocks() {
                 style={{
                   fontFamily:
                     "'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif",
-                  fontSize: '14px',
-                  lineHeight: 1.5,
+                  fontSize: '15px',
+                  lineHeight: 1.55,
                   color: 'var(--ink-soft)',
                 }}
               >

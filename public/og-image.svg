@@ -1,0 +1,206 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <!--
+    Axiom — Open Graph share image.
+
+    Composition mirrors the live BG die shot: pitch substrate, faint
+    photolithography grid, HBM bands at the outer edges, cache columns,
+    and a focal stack of nested frames around a bright golden core. The
+    wordmark sits on the left; the focal stack is the right-hand subject.
+    A bus-channel legend (data / ctrl / ack / snoop) anchors the bottom
+    so a viewer who's never seen the site instantly grasps the
+    architectural-traffic story.
+  -->
+  <defs>
+    <radialGradient id="substrate" cx="50%" cy="50%" r="85%">
+      <stop offset="0%"  stop-color="#06070d"/>
+      <stop offset="100%" stop-color="#020308"/>
+    </radialGradient>
+    <radialGradient id="warm" cx="70%" cy="50%" r="55%">
+      <stop offset="0%"  stop-color="#f5b461" stop-opacity="0.20"/>
+      <stop offset="50%" stop-color="#f5b461" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#f5b461" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"  stop-color="#ffd28a" stop-opacity="0.85"/>
+      <stop offset="40%" stop-color="#f5b461" stop-opacity="0.40"/>
+      <stop offset="100%" stop-color="#f5b461" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="lithoGrid" width="22" height="22" patternUnits="userSpaceOnUse">
+      <rect width="0.6" height="0.6" fill="#f5b461" fill-opacity="0.10"/>
+    </pattern>
+    <linearGradient id="bandFill" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%"   stop-color="#f5b461" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#f5b461" stop-opacity="0.10"/>
+    </linearGradient>
+    <linearGradient id="busPulse" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%"  stop-color="#ffd66a" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#ffd66a" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#ffd66a" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="busPulseBlue" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%"  stop-color="#7dc8ff" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#7dc8ff" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#7dc8ff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="busPulseGreen" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%"  stop-color="#8aef9f" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#8aef9f" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#8aef9f" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Substrate + warm radial wash -->
+  <rect width="1200" height="630" fill="url(#substrate)"/>
+  <rect width="1200" height="630" fill="url(#warm)"/>
+  <rect width="1200" height="630" fill="url(#lithoGrid)"/>
+
+  <!-- HBM bands at the outer edges -->
+  <g>
+    <rect x="36" y="60" width="36" height="510" rx="4" fill="url(#bandFill)" stroke="#f5b461" stroke-width="0.9" stroke-opacity="0.40"/>
+    <g stroke="#f5b461" stroke-width="0.9" stroke-opacity="0.45">
+      <line x1="40" y1="78"  x2="68" y2="78"/>
+      <line x1="40" y1="98"  x2="68" y2="98"/>
+      <line x1="40" y1="118" x2="68" y2="118"/>
+      <line x1="40" y1="138" x2="68" y2="138"/>
+      <line x1="40" y1="158" x2="68" y2="158"/>
+      <line x1="40" y1="178" x2="68" y2="178"/>
+      <line x1="40" y1="198" x2="68" y2="198"/>
+      <line x1="40" y1="218" x2="68" y2="218"/>
+      <line x1="40" y1="238" x2="68" y2="238"/>
+      <line x1="40" y1="258" x2="68" y2="258"/>
+      <line x1="40" y1="278" x2="68" y2="278"/>
+      <line x1="40" y1="298" x2="68" y2="298"/>
+      <line x1="40" y1="318" x2="68" y2="318"/>
+      <line x1="40" y1="338" x2="68" y2="338"/>
+      <line x1="40" y1="358" x2="68" y2="358"/>
+      <line x1="40" y1="378" x2="68" y2="378"/>
+      <line x1="40" y1="398" x2="68" y2="398"/>
+      <line x1="40" y1="418" x2="68" y2="418"/>
+      <line x1="40" y1="438" x2="68" y2="438"/>
+      <line x1="40" y1="458" x2="68" y2="458"/>
+      <line x1="40" y1="478" x2="68" y2="478"/>
+      <line x1="40" y1="498" x2="68" y2="498"/>
+      <line x1="40" y1="518" x2="68" y2="518"/>
+      <line x1="40" y1="538" x2="68" y2="538"/>
+      <line x1="40" y1="558" x2="68" y2="558"/>
+    </g>
+
+    <rect x="1128" y="60" width="36" height="510" rx="4" fill="url(#bandFill)" stroke="#f5b461" stroke-width="0.9" stroke-opacity="0.40"/>
+    <g stroke="#f5b461" stroke-width="0.9" stroke-opacity="0.45">
+      <line x1="1132" y1="78"  x2="1160" y2="78"/>
+      <line x1="1132" y1="98"  x2="1160" y2="98"/>
+      <line x1="1132" y1="118" x2="1160" y2="118"/>
+      <line x1="1132" y1="138" x2="1160" y2="138"/>
+      <line x1="1132" y1="158" x2="1160" y2="158"/>
+      <line x1="1132" y1="178" x2="1160" y2="178"/>
+      <line x1="1132" y1="198" x2="1160" y2="198"/>
+      <line x1="1132" y1="218" x2="1160" y2="218"/>
+      <line x1="1132" y1="238" x2="1160" y2="238"/>
+      <line x1="1132" y1="258" x2="1160" y2="258"/>
+      <line x1="1132" y1="278" x2="1160" y2="278"/>
+      <line x1="1132" y1="298" x2="1160" y2="298"/>
+      <line x1="1132" y1="318" x2="1160" y2="318"/>
+      <line x1="1132" y1="338" x2="1160" y2="338"/>
+      <line x1="1132" y1="358" x2="1160" y2="358"/>
+      <line x1="1132" y1="378" x2="1160" y2="378"/>
+      <line x1="1132" y1="398" x2="1160" y2="398"/>
+      <line x1="1132" y1="418" x2="1160" y2="418"/>
+      <line x1="1132" y1="438" x2="1160" y2="438"/>
+      <line x1="1132" y1="458" x2="1160" y2="458"/>
+      <line x1="1132" y1="478" x2="1160" y2="478"/>
+      <line x1="1132" y1="498" x2="1160" y2="498"/>
+      <line x1="1132" y1="518" x2="1160" y2="518"/>
+      <line x1="1132" y1="538" x2="1160" y2="538"/>
+      <line x1="1132" y1="558" x2="1160" y2="558"/>
+    </g>
+  </g>
+
+  <!-- Bus traces fanning into the focal area, with a couple of "in flight"
+       electron pulses to imply the live data flow. -->
+  <g stroke="#f5b461" stroke-width="0.7" stroke-opacity="0.18" fill="none">
+    <line x1="80" y1="200" x2="640" y2="200"/>
+    <line x1="80" y1="240" x2="640" y2="240"/>
+    <line x1="80" y1="280" x2="640" y2="280"/>
+    <line x1="80" y1="320" x2="640" y2="320"/>
+    <line x1="80" y1="360" x2="640" y2="360"/>
+    <line x1="80" y1="400" x2="640" y2="400"/>
+    <line x1="80" y1="440" x2="640" y2="440"/>
+
+    <line x1="1120" y1="200" x2="980" y2="200"/>
+    <line x1="1120" y1="240" x2="980" y2="240"/>
+    <line x1="1120" y1="280" x2="980" y2="280"/>
+    <line x1="1120" y1="320" x2="980" y2="320"/>
+    <line x1="1120" y1="360" x2="980" y2="360"/>
+    <line x1="1120" y1="400" x2="980" y2="400"/>
+    <line x1="1120" y1="440" x2="980" y2="440"/>
+  </g>
+
+  <!-- A few in-flight bus pulses (yellow data, blue control, green ack). -->
+  <rect x="380" y="239.4" width="120" height="1.2" fill="url(#busPulse)"/>
+  <rect x="220" y="319.4" width="160" height="1.2" fill="url(#busPulseBlue)"/>
+  <rect x="1000" y="399.4" width="120" height="1.2" fill="url(#busPulseGreen)"/>
+
+  <!-- Central focal stack — concentric nested frames with bright core. -->
+  <g transform="translate(880, 315)">
+    <!-- Outermost glow halo -->
+    <circle r="280" fill="url(#coreGlow)" opacity="0.45"/>
+
+    <!-- Frames, outer to inner -->
+    <rect x="-260" y="-260" width="520" height="520" rx="14" fill="none" stroke="#f5b461" stroke-width="1.2" stroke-opacity="0.32"/>
+    <rect x="-205" y="-205" width="410" height="410" rx="11" fill="none" stroke="#f5b461" stroke-width="1.4" stroke-opacity="0.45"/>
+    <rect x="-150" y="-150" width="300" height="300" rx="8"  fill="none" stroke="#f5b461" stroke-width="1.6" stroke-opacity="0.62"/>
+    <rect x="-95"  y="-95"  width="190" height="190" rx="6"  fill="none" stroke="#f5b461" stroke-width="1.8" stroke-opacity="0.80"/>
+    <rect x="-50"  y="-50"  width="100" height="100" rx="4"  fill="none" stroke="#ffd28a" stroke-width="2"   stroke-opacity="0.95"/>
+    <rect x="-22"  y="-22"  width="44"  height="44"  rx="3"  fill="#ffd28a" opacity="0.88"/>
+
+    <!-- Crosshair through the core. -->
+    <line x1="-260" y1="0" x2="-50" y2="0" stroke="#ffd28a" stroke-width="0.8" stroke-opacity="0.45"/>
+    <line x1="50"   y1="0" x2="260"  y2="0" stroke="#ffd28a" stroke-width="0.8" stroke-opacity="0.45"/>
+    <line x1="0" y1="-260" x2="0" y2="-50" stroke="#ffd28a" stroke-width="0.8" stroke-opacity="0.45"/>
+    <line x1="0" y1="50"   x2="0" y2="260"  stroke="#ffd28a" stroke-width="0.8" stroke-opacity="0.45"/>
+  </g>
+
+  <!-- Wordmark + tagline, left side. -->
+  <g transform="translate(120, 240)">
+    <text
+      x="0" y="0"
+      font-family="'Fraunces', 'Georgia', 'Times New Roman', serif"
+      font-size="156"
+      font-weight="500"
+      letter-spacing="-4"
+      fill="#ecedf1"
+    >Axiom</text>
+    <text
+      x="0" y="68"
+      font-family="'Inter', 'Helvetica Neue', 'Helvetica', Arial, sans-serif"
+      font-size="30"
+      font-weight="400"
+      fill="#b8bdcb"
+    >From electrons to execution.</text>
+    <text
+      x="6" y="120"
+      font-family="'JetBrains Mono', 'SF Mono', 'Menlo', 'Consolas', monospace"
+      font-size="14"
+      letter-spacing="4"
+      fill="#6e7488"
+    >A VISUAL ATLAS OF COMPUTER ARCHITECTURE</text>
+  </g>
+
+  <!-- Bus-channel legend along the bottom-left. -->
+  <g transform="translate(126, 540)">
+    <circle cx="0"  cy="0" r="5" fill="#ffd66a"/>
+    <text x="14" y="4" font-family="'JetBrains Mono', 'SF Mono', 'Menlo', monospace" font-size="12" letter-spacing="2.2" fill="#9aa1b3">DATA</text>
+
+    <circle cx="84"  cy="0" r="5" fill="#7dc8ff"/>
+    <text x="98" y="4" font-family="'JetBrains Mono', 'SF Mono', 'Menlo', monospace" font-size="12" letter-spacing="2.2" fill="#9aa1b3">CTRL</text>
+
+    <circle cx="166" cy="0" r="5" fill="#8aef9f"/>
+    <text x="180" y="4" font-family="'JetBrains Mono', 'SF Mono', 'Menlo', monospace" font-size="12" letter-spacing="2.2" fill="#9aa1b3">ACK</text>
+
+    <circle cx="244" cy="0" r="5" fill="#ff8a8a"/>
+    <text x="258" y="4" font-family="'JetBrains Mono', 'SF Mono', 'Menlo', monospace" font-size="12" letter-spacing="2.2" fill="#9aa1b3">SNOOP</text>
+  </g>
+
+  <!-- Outer chip frame (whole canvas hairline). -->
+  <rect x="0.5" y="0.5" width="1199" height="629" fill="none" stroke="#f5b461" stroke-opacity="0.18" stroke-width="1"/>
+</svg>
