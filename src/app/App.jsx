@@ -32,7 +32,7 @@ function Layout({ onOpenSearch, density }) {
           >
             overclocked@elevendots.ai
           </a>
-          <span>From electrons to execution.</span>
+          <span>From ElevenDots</span>
         </div>
       </footer>
     </>
