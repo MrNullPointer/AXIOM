@@ -59,6 +59,145 @@
     </script>
   </head>
   <body>
+    <!-- Boot loader — visible from the moment HTML parses (before any
+         JS or CSS bundles have downloaded). All animation is inline
+         CSS so it runs without dependencies. The chip "powers on": a
+         dot-grid substrate fades in, a copper trace sweeps across as
+         a lithography pass, the centre wakes with a pulsing core, and
+         the wordmark resolves last. React removes #axiom-loader once
+         the app is mounted (see src/main.jsx). -->
+    <div id="axiom-loader" aria-hidden="true">
+      <style>
+        #axiom-loader {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          background: #05060a;
+          color: #ecedf1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          gap: 32px;
+          font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+          opacity: 1;
+          transition: opacity 600ms cubic-bezier(0.22, 1, 0.36, 1);
+          pointer-events: none;
+        }
+        :root[data-theme='light'] #axiom-loader {
+          background: #f4efe4;
+          color: #0e1a2b;
+        }
+        #axiom-loader.is-out { opacity: 0; }
+
+        /* Dot-grid substrate — fades in over 800ms */
+        #axiom-loader::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background-image: radial-gradient(rgba(180, 195, 220, 0.18) 1px, transparent 1px);
+          background-size: 16px 16px;
+          opacity: 0;
+          animation: axiom-loader-substrate 1100ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        :root[data-theme='light'] #axiom-loader::before {
+          background-image: radial-gradient(rgba(14, 26, 43, 0.18) 1px, transparent 1px);
+        }
+        @keyframes axiom-loader-substrate {
+          0%   { opacity: 0; }
+          100% { opacity: 1; }
+        }
+
+        /* Copper lithography sweep — single pass left → right */
+        #axiom-loader::after {
+          content: '';
+          position: absolute;
+          top: 0; bottom: 0;
+          left: -120px;
+          width: 120px;
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(245, 180, 97, 0) 30%,
+            rgba(245, 180, 97, 0.55) 50%,
+            rgba(245, 180, 97, 0) 70%,
+            transparent 100%
+          );
+          filter: blur(14px);
+          animation: axiom-loader-sweep 1400ms cubic-bezier(0.22, 1, 0.36, 1) 200ms forwards;
+        }
+        @keyframes axiom-loader-sweep {
+          0%   { left: -120px; opacity: 0; }
+          15%  { opacity: 1; }
+          85%  { opacity: 1; }
+          100% { left: 100%; opacity: 0; }
+        }
+
+        /* Centre core — concentric squares wake up */
+        #axiom-loader-core {
+          position: relative;
+          width: 96px;
+          height: 96px;
+          opacity: 0;
+          animation: axiom-loader-core-fade 700ms cubic-bezier(0.22, 1, 0.36, 1) 600ms forwards;
+        }
+        #axiom-loader-core span {
+          position: absolute;
+          inset: 0;
+          border: 1px solid rgba(245, 180, 97, 0.35);
+          border-radius: 4px;
+          animation: axiom-loader-core-pulse 1.6s ease-in-out infinite;
+        }
+        #axiom-loader-core span:nth-child(2) { inset: 18px; opacity: 0.7; animation-delay: 0.2s; }
+        #axiom-loader-core span:nth-child(3) { inset: 32px; opacity: 0.5; animation-delay: 0.4s; }
+        #axiom-loader-core span:nth-child(4) {
+          inset: 42px;
+          background: rgba(245, 180, 97, 0.95);
+          box-shadow: 0 0 18px rgba(245, 180, 97, 0.7);
+          border: none;
+          animation: axiom-loader-core-bead 1.6s ease-in-out infinite;
+        }
+        @keyframes axiom-loader-core-fade {
+          0% { opacity: 0; transform: scale(0.85); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes axiom-loader-core-pulse {
+          0%, 100% { opacity: 0.35; }
+          50%      { opacity: 0.85; }
+        }
+        @keyframes axiom-loader-core-bead {
+          0%, 100% { transform: scale(0.85); }
+          50%      { transform: scale(1.1); }
+        }
+
+        /* Wordmark — resolves last */
+        #axiom-loader-wordmark {
+          position: relative;
+          font-size: 11px;
+          letter-spacing: 0.36em;
+          text-transform: uppercase;
+          color: rgba(180, 195, 220, 0.65);
+          opacity: 0;
+          animation: axiom-loader-wordmark 600ms cubic-bezier(0.22, 1, 0.36, 1) 1100ms forwards;
+        }
+        :root[data-theme='light'] #axiom-loader-wordmark { color: rgba(14, 26, 43, 0.6); }
+        @keyframes axiom-loader-wordmark {
+          0%   { opacity: 0; transform: translateY(6px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          #axiom-loader::before, #axiom-loader::after,
+          #axiom-loader-core, #axiom-loader-core span,
+          #axiom-loader-wordmark { animation-duration: 100ms; }
+        }
+      </style>
+      <div id="axiom-loader-core">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <div id="axiom-loader-wordmark">booting&nbsp;atlas</div>
+    </div>
+
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

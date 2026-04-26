@@ -15,7 +15,11 @@ import { useTheme } from '../../app/theme.jsx';
  *
  * Reduced motion: paints one frame.
  */
-export default function CircuitFlow({ density = 1, motion = 'full' }) {
+export default function CircuitFlow({
+  density = 1,
+  motion = 'full',
+  narrativeStage = null,
+}) {
   // Three intensity tiers, picked from the `density` prop:
   //   • rich     (Atlas, density ≥ 1)        — full chip activity
   //   • minimal  (Concept pages, density < 0.5) — very slow + sparse
@@ -30,10 +34,17 @@ export default function CircuitFlow({ density = 1, motion = 'full' }) {
   const canvasRef = useRef(null);
   const { theme } = useTheme();
   const themeRef = useRef(theme);
+  // narrativeStage is read every frame in the rAF loop. We keep it in a
+  // ref so the Atlas page can update it from scroll without recreating
+  // the entire effect (which would tear down the canvas + electrons).
+  const narrativeStageRef = useRef(narrativeStage);
 
   useEffect(() => {
     themeRef.current = theme;
   }, [theme]);
+  useEffect(() => {
+    narrativeStageRef.current = narrativeStage;
+  }, [narrativeStage]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -179,6 +190,12 @@ export default function CircuitFlow({ density = 1, motion = 'full' }) {
     let transactions = [];
     let litLanes = []; // { lane, color, t, ttl }
     let cellGlows = []; // { x, y, color, size, t, ttl }
+    // Soft area blooms pushed when an electron *lands* (reaches its
+    // destination). Reads as a brief warm-up of the area where data just
+    // arrived — like a chip district waking up the moment a request hits
+    // it. Larger radius + longer TTL than cellGlows; rendered behind them
+    // so the cell square stays sharp on top.
+    let landingFlashes = []; // { x, y, color, radius, t, ttl }
     let twinkles = []; // Cursor-reactive twinkles only.
     let lastTransactionSpawn = 0;
     let lastCursorTwinkle = 0;
@@ -998,6 +1015,41 @@ export default function CircuitFlow({ density = 1, motion = 'full' }) {
     }
 
     /**
+     * scriptedSpawn — picks a region + direction matching the active
+     * scroll-narrative stage. Each stage corresponds to a moment in the
+     * cache-miss story (see scenarioStages.js); the BG canvas plays
+     * matching electron traffic so the background tells the story too.
+     *
+     *   0 issue        → outbound from focal toward a cache (request leaves core)
+     *   1 L1/L2 miss   → outbound to cacheL/R (probes walking out)
+     *   2 ring bus     → inbound from cache (reply riding the ring)
+     *   3 L3/DRAM      → outbound to HBM band (the cliff: off-chip)
+     *   4 coherence    → outbound to mixed regions (snoops to other slices)
+     *   5 fill cascade → inbound from band → cache (data riding back)
+     *   6 retire       → inbound from cache to focal (data lands in register)
+     */
+    function scriptedSpawn(stage) {
+      switch (stage) {
+        case 0:
+          return { regionId: Math.random() < 0.5 ? 'cacheL' : 'cacheR', outbound: true };
+        case 1:
+          return { regionId: Math.random() < 0.5 ? 'cacheL' : 'cacheR', outbound: true };
+        case 2:
+          return { regionId: Math.random() < 0.5 ? 'cacheL' : 'cacheR', outbound: false };
+        case 3:
+          return { regionId: Math.random() < 0.5 ? 'bandL' : 'bandR', outbound: true };
+        case 4:
+          return { regionId: Math.random() < 0.5 ? 'mixedL' : 'mixedR', outbound: false };
+        case 5:
+          return { regionId: Math.random() < 0.5 ? 'bandL' : 'bandR', outbound: false };
+        case 6:
+          return { regionId: Math.random() < 0.5 ? 'cacheL' : 'cacheR', outbound: false };
+        default:
+          return null;
+      }
+    }
+
+    /**
      * Pick a random cell position inside the source region. For SRAM banks
      * we snap to the cell grid so the glow aligns with a real cell. For
      * HBM bands we pick a row × column on the stacked layers.
@@ -1262,6 +1314,18 @@ export default function CircuitFlow({ density = 1, motion = 'full' }) {
                   ttl: 0.55,
                   t: 0,
                 });
+                // Area bloom — warms a wide patch of substrate where the
+                // electron just landed, then fades. Larger + longer than
+                // the cell glow so the eye registers "something arrived
+                // here" even from across the page.
+                landingFlashes.push({
+                  x: last.x,
+                  y: last.y,
+                  radius: minimal ? 70 : 95,
+                  color: tx.color,
+                  ttl: minimal ? 1.4 : 1.05,
+                  t: 0,
+                });
                 rippleFocalArrival(tx);
               } else {
                 igniteCurrentLeg(tx);
@@ -1288,6 +1352,10 @@ export default function CircuitFlow({ density = 1, motion = 'full' }) {
         litLanes[i].t += dts;
         if (litLanes[i].t > litLanes[i].ttl) litLanes.splice(i, 1);
       }
+      for (let i = landingFlashes.length - 1; i >= 0; i--) {
+        landingFlashes[i].t += dts;
+        if (landingFlashes[i].t > landingFlashes[i].ttl) landingFlashes.splice(i, 1);
+      }
       for (let i = cellGlows.length - 1; i >= 0; i--) {
         cellGlows[i].t += dts;
         if (cellGlows[i].t > cellGlows[i].ttl) cellGlows.splice(i, 1);
@@ -1299,13 +1367,21 @@ export default function CircuitFlow({ density = 1, motion = 'full' }) {
 
       // Spawn cadence — multiple parallel transactions in flight, like a
       // real CPU's MSHRs (10+ outstanding misses) on Atlas/Index. On
-      // long-form concept pages we drop to a trickle: at most 2 in flight
-      // and ~2.2s between spawns, so the chip is alive but the eye never
-      // gets pulled off the text.
-      const spawnInterval = minimal ? 2200 : 320;
-      const maxConcurrent = minimal ? 2 : 9;
+      // long-form concept pages we drop to a trickle. In scripted
+      // narrative mode we run faster (more activity = clearer story)
+      // and pick the source/direction matching the active stage so the
+      // BG traffic visibly tracks the cache-miss journey.
+      const stage = narrativeStageRef.current;
+      const isScripted = stage !== null && stage !== undefined && rich;
+      const spawnInterval = minimal ? 2200 : isScripted ? 180 : 320;
+      const maxConcurrent = minimal ? 2 : isScripted ? 12 : 9;
       if (now - lastTransactionSpawn > spawnInterval && transactions.length < maxConcurrent) {
-        spawnTransaction({ outbound: Math.random() < 0.30 });
+        if (isScripted) {
+          const spec = scriptedSpawn(stage);
+          if (spec) spawnTransaction(spec);
+        } else {
+          spawnTransaction({ outbound: Math.random() < 0.30 });
+        }
         lastTransactionSpawn = now;
       }
 
@@ -1387,6 +1463,63 @@ export default function CircuitFlow({ density = 1, motion = 'full' }) {
           radius * 2,
           radius * 2,
         );
+      }
+
+      // ---- Cursor pop-up cell field ------------------------------ //
+      // A field of silicon cells in front of the cursor lifts toward
+      // the viewer — closer to cursor = higher lift, like a wave of
+      // tiny buildings popping up. As the cursor moves on, the lift
+      // values fall back to zero (cells flush with substrate).
+      //
+      // The grid is fixed in screen space (4px stride matching the
+      // SRAM cell pitch), iterated via grid-aligned anchors so the
+      // cells never jitter as the cursor moves sub-pixel. Each "popped"
+      // cell renders three layers: a substrate shadow at the original
+      // position (the building's footprint), a 1px side-wall hint
+      // (visible side face), and the warm copper roof at the lifted Y.
+      //
+      // Skipped on calm/long-form pages — this is an Atlas hero effect.
+      if (cursorActive && rich) {
+        const POP_RADIUS = 110;
+        const STRIDE = 5;
+        const CELL = 4;
+        const MAX_LIFT = 9;
+        const startX = Math.floor((mouse.x - POP_RADIUS) / STRIDE) * STRIDE;
+        const startY = Math.floor((mouse.y - POP_RADIUS) / STRIDE) * STRIDE;
+        const endX = mouse.x + POP_RADIUS;
+        const endY = mouse.y + POP_RADIUS;
+        for (let yy = startY; yy <= endY; yy += STRIDE) {
+          for (let xx = startX; xx <= endX; xx += STRIDE) {
+            const cxg = xx + CELL / 2;
+            const cyg = yy + CELL / 2;
+            const dx = cxg - mouse.x;
+            const dy = cyg - mouse.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > POP_RADIUS) continue;
+            const t = 1 - dist / POP_RADIUS;
+            const ease = t * t;          // ease-out: sharp peak, soft taper
+            const lift = ease * MAX_LIFT;
+            // Substrate shadow — the cell's "footprint" before it lifted.
+            ctx.fillStyle = `rgba(0, 0, 0, ${0.32 * ease})`;
+            ctx.fillRect(xx, yy, CELL, CELL);
+            // Side-wall hint — 1px column on the right edge from
+            // substrate up to the lifted top. Reads as a visible
+            // building face catching the spotlight from above.
+            if (lift > 1.5) {
+              ctx.fillStyle = `rgba(0, 0, 0, ${0.42 * ease})`;
+              ctx.fillRect(xx + CELL - 1, yy - lift, 1, lift);
+            }
+            // Top of the popped cell — warm copper at lifted Y, plus
+            // a 1px brighter top edge (the "roof line") so the cell
+            // reads as a cube, not a flat square.
+            ctx.fillStyle = `rgba(245, 200, 130, ${0.72 * ease})`;
+            ctx.fillRect(xx, yy - lift, CELL, CELL);
+            if (ease > 0.5) {
+              ctx.fillStyle = `rgba(255, 230, 180, ${0.55 * ease})`;
+              ctx.fillRect(xx, yy - lift, CELL, 1);
+            }
+          }
+        }
       }
 
       // Cell twinkles render in both modes so the cursor effect can produce
@@ -1516,6 +1649,28 @@ export default function CircuitFlow({ density = 1, motion = 'full' }) {
         ctx.stroke();
       }
 
+      // Landing flashes — wide soft area blooms wherever an electron has
+      // just arrived. Painted BEFORE cellGlows so the tighter cell glow
+      // (and any moving electron heads) reads sharp on top of the bloom.
+      // The envelope is sin(πt) so it fades up + back down smoothly,
+      // never a hard pop. Color is the transaction's electron color so
+      // each domain warms in its semantic hue (yellow load, blue write,
+      // green coherence, red eviction).
+      for (const lf of landingFlashes) {
+        const t = lf.t / lf.ttl;
+        if (t < 0 || t > 1) continue;
+        const env = Math.sin(t * Math.PI);
+        const radius = lf.radius;
+        const halo = ctx.createRadialGradient(lf.x, lf.y, 0, lf.x, lf.y, radius);
+        halo.addColorStop(0, withAlpha(lf.color, 0.32 * env * intensity));
+        halo.addColorStop(0.45, withAlpha(lf.color, 0.14 * env * intensity));
+        halo.addColorStop(1, withAlpha(lf.color, 0));
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(lf.x, lf.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
       // Cell glows — at memory cells and focal hierarchy rings. Negative
       // `t` values mean the glow is staged for a slightly later start
       // (used for the L3→L2→L1→TLB→reg arrival ripple).
@@ -1616,6 +1771,7 @@ export default function CircuitFlow({ density = 1, motion = 'full' }) {
       transactions = [];
       litLanes = [];
       cellGlows = [];
+      landingFlashes = [];
       twinkles = [];
       if (reduceMotion) {
         step(16, performance.now());

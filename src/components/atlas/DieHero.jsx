@@ -30,6 +30,7 @@ export default function DieHero({
   const canvasRef = useRef(null);
   const tiltRef = useRef(null);
   const specRef = useRef(null);
+  const foilRef = useRef(null);
   const { theme } = useTheme();
   const themeRef = useRef(theme);
   const hoveredRef = useRef(hovered);
@@ -298,8 +299,16 @@ export default function DieHero({
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) return;
 
-    const target = { x: 0, y: 0, hover: 0 };
-    const cur = { x: 0, y: 0, hover: 0 };
+    // target/cur drive five linked things in one rAF loop:
+    //   • tilt rotation + lift (the chip-shaped tilt surface)
+    //   • specular highlight (moves opposite to tilt)
+    //   • spotlight aperture (radial darken with a hole at cursor)
+    //   • holographic foil (conic sheen anchored to cursor)
+    //   • spot opacity + foil opacity (fade in/out on enter/leave)
+    // Keeping all of it in one rAF avoids competing handlers and keeps
+    // the chip surface, spotlight, and foil perfectly phase-locked.
+    const target = { x: 0, y: 0, px: 50, py: 50, hover: 0 };
+    const cur = { x: 0, y: 0, px: 50, py: 50, hover: 0 };
 
     function onMove(e) {
       const r = wrap.getBoundingClientRect();
@@ -307,6 +316,8 @@ export default function DieHero({
       const cy = (e.clientY - r.top) / r.height;
       target.x = (cx - 0.5) * 2;
       target.y = (cy - 0.5) * 2;
+      target.px = cx * 100;
+      target.py = cy * 100;
     }
     function onEnter() {
       target.hover = 1;
@@ -314,6 +325,8 @@ export default function DieHero({
     function onLeave() {
       target.x = 0;
       target.y = 0;
+      target.px = 50;
+      target.py = 50;
       target.hover = 0;
     }
 
@@ -325,6 +338,9 @@ export default function DieHero({
     function tick() {
       cur.x += (target.x - cur.x) * 0.08;
       cur.y += (target.y - cur.y) * 0.08;
+      // Spotlight tracks faster than tilt — flashlight feel, not glassy drift.
+      cur.px += (target.px - cur.px) * 0.18;
+      cur.py += (target.py - cur.py) * 0.18;
       cur.hover += (target.hover - cur.hover) * 0.1;
       const rotY = cur.x * 6;     // max ~6° around vertical
       const rotX = -cur.y * 5;    // max ~5° around horizontal
@@ -334,6 +350,22 @@ export default function DieHero({
         const sx = 50 - cur.x * 22;
         const sy = 30 - cur.y * 22;
         specRef.current.style.background = `radial-gradient(ellipse 55% 45% at ${sx}% ${sy}%, rgba(255,255,255,0.10), transparent 70%)`;
+      }
+      if (foilRef.current) {
+        // Conic sheen anchored to cursor — the chip surface "catches light"
+        // like a Pokémon-card foil. Cyan + copper alternating so it stays
+        // on-brand instead of a generic rainbow.
+        const a = ((cur.x + cur.y) * 60).toFixed(1);
+        foilRef.current.style.background =
+          `conic-gradient(from ${a}deg at ${cur.px.toFixed(2)}% ${cur.py.toFixed(2)}%, ` +
+          `transparent 0deg, ` +
+          `rgba(125,249,255,0.10) 60deg, ` +
+          `transparent 130deg, ` +
+          `rgba(245,180,97,0.09) 200deg, ` +
+          `transparent 270deg, ` +
+          `rgba(125,249,255,0.06) 330deg, ` +
+          `transparent 360deg)`;
+        foilRef.current.style.opacity = (cur.hover * 0.85).toFixed(3);
       }
       raf = requestAnimationFrame(tick);
     }
@@ -352,7 +384,10 @@ export default function DieHero({
     <div
       ref={wrapRef}
       className="relative w-full"
-      style={{ aspectRatio: '5 / 3', perspective: compact ? undefined : '1500px' }}
+      style={{
+        aspectRatio: '5 / 3',
+        perspective: compact ? undefined : '1500px',
+      }}
     >
       {/* Static depth shadow — light liquid-glass slab. The busy die-shot
           background blurs softly through the panel so floorplan labels read
@@ -413,6 +448,23 @@ export default function DieHero({
           </svg>
         ) : null}
 
+        {/* Holographic foil — conic sheen anchored to the cursor that tilts
+            with the chip, like light catching real metal layers under glass.
+            Sits below the cards so it foils the silicon, not the labels. */}
+        {!compact ? (
+          <div
+            ref={foilRef}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 rounded-2xl"
+            style={{
+              transform: 'translateZ(2px)',
+              opacity: 0,
+              mixBlendMode: 'screen',
+              willChange: 'background, opacity',
+            }}
+          />
+        ) : null}
+
         {/* Interactive flip cards — one per block. Front shows the label;
             hover flips to the back which holds the description, concept
             chips, and an "enter" CTA. Detail in-place — no scroll. */}
@@ -426,6 +478,7 @@ export default function DieHero({
                 key={d.id}
                 domain={d}
                 isFlipped={hovered === d.id}
+                hoveredId={hovered}
                 onHover={(v) => setHovered && setHovered(v ? d.id : null)}
               />
             ))}
@@ -459,10 +512,13 @@ export default function DieHero({
   );
 }
 
-function FlipBlockCard({ domain, isFlipped, onHover }) {
+function FlipBlockCard({ domain, isFlipped, hoveredId, onHover }) {
   const { col, row, w, h } = domain.floor;
   const concepts = conceptsByDomain(domain.id);
   const accent = ACCENT_VAR[domain.accent] || 'var(--accent-1)';
+  // self / other / idle drives the magnetic lift + dim. Other blocks fade
+  // when one is hovered so the focus reads as a single lit functional unit.
+  const blockState = isFlipped ? 'self' : hoveredId ? 'other' : 'idle';
   // Front display label scales with block width — bumped so titles feel
   // proportional to the tile, not lost in it. Same scale curve on every
   // breakpoint so the desktop and mobile tile share visual weight.
@@ -484,7 +540,8 @@ function FlipBlockCard({ domain, isFlipped, onHover }) {
 
   return (
     <div
-      className="absolute"
+      className="atlas-block absolute"
+      data-state={blockState}
       style={{
         left: `${(col / 12) * 100}%`,
         top: `${(row / 8) * 100}%`,
@@ -493,10 +550,21 @@ function FlipBlockCard({ domain, isFlipped, onHover }) {
         padding: '8px',
         perspective: '900px',
         transformStyle: 'preserve-3d',
+        // Per-block accent flows through CSS so the breath glow and lift
+        // shadow share the domain color without re-passing it everywhere.
+        '--block-accent': accent,
       }}
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
     >
+      {/* Clock breath — subtle inset glow that pulses at a slow chip
+          rate, staggered per block so any moment ~one block is mid-
+          breath. Speeds up + brightens when self-hovered. */}
+      <span
+        className="atlas-block-clock"
+        aria-hidden="true"
+        style={{ animationDelay: `${4 + blockIndex * 0.42}s` }}
+      />
       <Link
         to={`/d/${domain.id}`}
         aria-label={`${domain.full} — view detail or enter`}
@@ -514,7 +582,13 @@ function FlipBlockCard({ domain, isFlipped, onHover }) {
         >
           {/* FRONT — transparent so the silicon canvas shows through.
               .atlas-block-wipe: clip-path reveal staggered by column
-              so the ten blocks light up in sequence with the beam. */}
+              so the ten blocks light up in sequence with the beam.
+              transform-style: preserve-3d so the inner stack
+              (label / count / ticks) keeps its translateZ values
+              instead of getting flattened. When the parent chip
+              tilts on mouse, that stack reads as real internal
+              parallax — the label projects forward of the count tag
+              which projects forward of the substrate border. */}
           <div
             className="absolute inset-0 rounded-md atlas-block-wipe"
             style={{
@@ -525,12 +599,16 @@ function FlipBlockCard({ domain, isFlipped, onHover }) {
               boxSizing: 'border-box',
               background: 'transparent',
               animationDelay: `${wipeDelayMs}ms`,
+              transformStyle: 'preserve-3d',
             }}
           >
             {/* Title centered in the full padded area — reads like
                 a die-shot annotation labelling the functional region.
-                LIVE count pinned to the bottom centre as a small tag. */}
-            <div className="flex h-full items-center justify-center">
+                Lifted +28px in Z so it sits highest in the block stack. */}
+            <div
+              className="flex h-full items-center justify-center"
+              style={{ transform: 'translateZ(28px)' }}
+            >
               <div
                 className="display atlas-label-pulse leading-none text-center"
                 style={{
@@ -541,6 +619,8 @@ function FlipBlockCard({ domain, isFlipped, onHover }) {
                 {domain.label}
               </div>
             </div>
+            {/* Count tag — mid-depth, sits between the substrate border
+                and the label so parallax is visible across all three. */}
             <div
               className="absolute bottom-3.5 left-0 right-0 text-center"
               style={{
@@ -549,11 +629,20 @@ function FlipBlockCard({ domain, isFlipped, onHover }) {
                 letterSpacing: '0.18em',
                 textTransform: 'uppercase',
                 color: 'var(--ink-faint)',
+                transform: 'translateZ(14px)',
               }}
             >
               {concepts.length} live
             </div>
-            <CornerTicks color="var(--ink-faint)" />
+            {/* Corner ticks — slightly above the substrate so they
+                read as etched annotation, not part of the silicon. */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ transform: 'translateZ(6px)' }}
+              aria-hidden="true"
+            >
+              <CornerTicks color="var(--ink-faint)" />
+            </div>
           </div>
 
           {/* BACK — glass card with detail. Inter sans-serif body, larger sizes
