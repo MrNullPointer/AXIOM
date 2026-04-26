@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import DieHero from '../components/atlas/DieHero.jsx';
+import EtchedHeadline from '../components/atlas/EtchedHeadline.jsx';
 import MobileBlocks from '../components/atlas/MobileBlocks.jsx';
 
 const ease = [0.22, 1, 0.36, 1];
@@ -37,10 +38,7 @@ export default function Atlas() {
           }}
         />
         <div className="relative">
-          <h1 className="display text-[clamp(48px,7vw,120px)]">
-            From <em className="serif-italic">electrons</em>
-            <br /> to <em className="serif-italic">execution</em>.
-          </h1>
+          <EtchedHeadline />
           <p className="lede mt-5 max-w-xl">
             A visual encyclopedia of computer architecture. Every concept lives
             on the die where it actually runs. Tap any block to read its
