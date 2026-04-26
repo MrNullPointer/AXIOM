@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 /**
- * ISAVisualizer — same instruction `add x5, x6, x7` decoded across three
+ * EncodingVisualizer — same instruction `add x5, x6, x7` decoded across three
  * architectures. Hover any field to see what those bits mean across all of them.
  */
 const FIELDS = ['opcode', 'dest', 'source 1', 'source 2', 'function'];
@@ -51,7 +51,7 @@ const ARCHES = [
   },
 ];
 
-export default function ISAVisualizer() {
+export default function EncodingVisualizer() {
   const [hovered, setHovered] = useState(null);
 
   return (
@@ -86,7 +86,8 @@ export default function ISAVisualizer() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 divide-y lg:grid-cols-3 lg:divide-x lg:divide-y-0"
+      <div
+        className="grid grid-cols-1 divide-y lg:grid-cols-3 lg:divide-x lg:divide-y-0"
         style={{ borderColor: 'var(--rule)' }}
       >
         {ARCHES.map((arch) => (

@@ -1,17 +1,28 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import CircuitFlow from '../components/background/CircuitFlow.jsx';
 import Navbar from '../components/shell/Navbar.jsx';
 import SearchPalette from '../components/shell/SearchPalette.jsx';
 import Atlas from '../pages/Atlas.jsx';
 import IndexPage from '../pages/IndexPage.jsx';
-import DomainPage from '../pages/DomainPage.jsx';
-import ConceptPage from '../pages/ConceptPage.jsx';
+import { useMotion, densityMultiplier } from './motion.jsx';
+
+// Heavier sub-routes are split into their own chunks. The atlas/index pages
+// stay eager because they are the most likely first paint. Concept and
+// domain pages load on demand and prefetch on hover (see ConceptCard).
+const DomainPage = lazy(() => import('../pages/DomainPage.jsx'));
+const ConceptPage = lazy(() => import('../pages/ConceptPage.jsx'));
 
 function Layout({ onOpenSearch, density }) {
+  const { level: motionLevel } = useMotion();
+  const effectiveDensity = density * densityMultiplier(motionLevel);
   return (
     <>
-      <CircuitFlow density={density} intensity={1} />
+      <CircuitFlow
+        density={effectiveDensity}
+        intensity={1}
+        motion={motionLevel}
+      />
       <Navbar onOpenSearch={onOpenSearch} />
       <main className="relative z-10">
         <Outlet />
@@ -68,8 +79,22 @@ export default function App() {
         <Route element={<Layout onOpenSearch={() => setSearchOpen(true)} density={density} />}>
           <Route path="/" element={<Atlas />} />
           <Route path="/index" element={<IndexPage />} />
-          <Route path="/d/:domain" element={<DomainPage />} />
-          <Route path="/c/:slug" element={<ConceptPage />} />
+          <Route
+            path="/d/:domain"
+            element={
+              <Suspense fallback={<RouteFallback />}>
+                <DomainPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/c/:slug"
+            element={
+              <Suspense fallback={<RouteFallback />}>
+                <ConceptPage />
+              </Suspense>
+            }
+          />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
@@ -84,6 +109,25 @@ function NotFound() {
       <div className="marker">404</div>
       <h1 className="display mt-3 text-5xl">Trace not routed.</h1>
       <p className="lede mt-3">That path doesn’t connect to a known node.</p>
+    </div>
+  );
+}
+
+/**
+ * Lightweight placeholder shown while a route's chunk loads. No spinner —
+ * just a thin progress hint that lets layout settle without flashing
+ * skeleton text we don't have yet.
+ */
+function RouteFallback() {
+  return (
+    <div
+      className="mx-auto h-[60vh] max-w-7xl px-5 py-12 sm:px-8"
+      aria-hidden="true"
+    >
+      <div
+        className="h-1 w-24 animate-pulse rounded-full"
+        style={{ background: 'var(--rule-strong)' }}
+      />
     </div>
   );
 }

@@ -15,7 +15,7 @@ import { useTheme } from '../../app/theme.jsx';
  *
  * Reduced motion: paints one frame.
  */
-export default function CircuitFlow({ density = 1 }) {
+export default function CircuitFlow({ density = 1, motion = 'full' }) {
   // Three intensity tiers, picked from the `density` prop:
   //   • rich     (Atlas, density ≥ 1)        — full chip activity
   //   • minimal  (Concept pages, density < 0.5) — very slow + sparse
@@ -41,7 +41,12 @@ export default function CircuitFlow({ density = 1 }) {
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // The user's MotionToggle ('off') overrides everything; otherwise we
+    // honour the OS-level prefers-reduced-motion preference. Either way,
+    // 'paint once and stop' uses the same downstream code path.
+    const reduceMotion =
+      motion === 'off' ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const PAL = {
       dark: {
@@ -1637,7 +1642,7 @@ export default function CircuitFlow({ density = 1 }) {
       document.removeEventListener('mouseleave', onMouseLeaveDoc);
       clearInterval(themeWatcher);
     };
-  }, [rich, minimal]);
+  }, [rich, minimal, motion]);
 
   return (
     <canvas

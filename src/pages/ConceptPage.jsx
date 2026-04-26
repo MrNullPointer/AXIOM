@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowUpRight, Cpu, Shield, Square, Zap } from 'lucide-react';
 import { CONCEPTS, getConcept, relatedConcepts } from '../concepts/index.js';
 import { ACCENT_VAR, getDomain } from '../data/domains.js';
+import LazyViz from '../components/LazyViz.jsx';
 
 // Reading-scale presets. Stored in localStorage so the choice persists
 // across sessions and concept pages.
@@ -21,13 +22,21 @@ function readStoredScale() {
   return Number.isFinite(num) ? num : 1;
 }
 
-const SECTIONS = [
-  { id: 'intuition', label: 'Intuition' },
+// All possible sections in their canonical order. The TOC is filtered to
+// only those whose content key is present, so concepts without (say) a
+// physics or ordering section just don't render those entries.
+const ALL_SECTIONS = [
+  { id: 'intuition', label: 'Intuition', alwaysShow: true },
   { id: 'problem', label: 'Problem' },
+  { id: 'physics', label: 'Physics' },
   { id: 'mechanism', label: 'Mechanism' },
+  { id: 'operands', label: 'Operands' },
+  { id: 'taxonomy', label: 'Taxonomy' },
+  { id: 'ordering', label: 'Ordering' },
   { id: 'tradeoffs', label: 'Trade-offs' },
   { id: 'lineages', label: 'Lineages' },
-  { id: 'related', label: 'Related' },
+  { id: 'evolution', label: 'Evolution' },
+  { id: 'related', label: 'Related', alwaysShow: true },
 ];
 
 const LENS_ICON = { performance: Zap, power: Cpu, area: Square, security: Shield };
@@ -59,10 +68,25 @@ export default function ConceptPage() {
     );
   }
 
-  const { meta, content, Visualizer } = concept;
+  const {
+    meta,
+    content,
+    Visualizer,
+    visualizers = {},
+    vizMinHeights = {},
+  } = concept;
   const domain = getDomain(meta.domain);
   const accent = ACCENT_VAR[domain?.accent] || 'var(--accent-1)';
   const related = relatedConcepts(meta);
+
+  // Sections that have content for this concept.
+  const sections = ALL_SECTIONS.filter(
+    (s) => s.alwaysShow || content[s.id],
+  );
+
+  // Resolve a visualizer for an optional section, by slot id.
+  const slotViz = (slot) => visualizers[slot] || null;
+  const slotHeight = (slot) => vizMinHeights[slot] || 360;
 
   return (
     <article
@@ -76,12 +100,14 @@ export default function ConceptPage() {
         domain={domain}
         accent={accent}
         Visualizer={Visualizer}
+        heroHeight={slotHeight('isa-encoding')}
       />
 
       <div className="hairline mt-12" />
 
       <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-12">
         <TOC
+          sections={sections}
           accent={accent}
           readingScale={readingScale}
           onScaleChange={setReadingScale}
@@ -107,6 +133,16 @@ export default function ConceptPage() {
             </div>
           </Section>
 
+          {content.physics ? (
+            <ProseAndViz
+              id="physics"
+              eyebrow="physics"
+              section={content.physics}
+              Viz={slotViz(content.physics.visualizerSlot)}
+              minHeight={slotHeight(content.physics.visualizerSlot)}
+            />
+          ) : null}
+
           <Section
             id="mechanism"
             eyebrow="mechanism"
@@ -117,16 +153,45 @@ export default function ConceptPage() {
                 <p key={i}>{p}</p>
               ))}
             </div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-              className="mt-8"
-            >
-              <Visualizer />
-            </motion.div>
+            <div className="mt-8">
+              <LazyViz
+                Component={Visualizer}
+                minHeight={slotHeight(content.mechanism.visualizerSlot)}
+                name="encoding"
+                eager
+              />
+            </div>
           </Section>
+
+          {content.operands ? (
+            <ProseAndViz
+              id="operands"
+              eyebrow="operands"
+              section={content.operands}
+              Viz={slotViz(content.operands.visualizerSlot)}
+              minHeight={slotHeight(content.operands.visualizerSlot)}
+            />
+          ) : null}
+
+          {content.taxonomy ? (
+            <ProseAndViz
+              id="taxonomy"
+              eyebrow="taxonomy"
+              section={content.taxonomy}
+              Viz={slotViz(content.taxonomy.visualizerSlot)}
+              minHeight={slotHeight(content.taxonomy.visualizerSlot)}
+            />
+          ) : null}
+
+          {content.ordering ? (
+            <ProseAndViz
+              id="ordering"
+              eyebrow="memory ordering"
+              section={content.ordering}
+              Viz={slotViz(content.ordering.visualizerSlot)}
+              minHeight={slotHeight(content.ordering.visualizerSlot)}
+            />
+          ) : null}
 
           <Section
             id="tradeoffs"
@@ -176,6 +241,16 @@ export default function ConceptPage() {
               ))}
             </div>
           </Section>
+
+          {content.evolution ? (
+            <ProseAndViz
+              id="evolution"
+              eyebrow="evolution"
+              section={content.evolution}
+              Viz={slotViz(content.evolution.visualizerSlot)}
+              minHeight={slotHeight(content.evolution.visualizerSlot)}
+            />
+          ) : null}
 
           <Section id="related" eyebrow="related">
             {related.length === 0 ? (
@@ -237,7 +312,7 @@ function Breadcrumb({ domain, title }) {
   );
 }
 
-function Hero({ meta, domain, accent, Visualizer }) {
+function Hero({ meta, domain, accent, Visualizer, heroHeight }) {
   return (
     <header className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
       <div className="lg:col-span-5">
@@ -275,13 +350,18 @@ function Hero({ meta, domain, accent, Visualizer }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       >
-        <Visualizer />
+        <LazyViz
+          Component={Visualizer}
+          minHeight={heroHeight}
+          name="hero"
+          eager
+        />
       </motion.div>
     </header>
   );
 }
 
-function TOC({ accent, readingScale, onScaleChange }) {
+function TOC({ sections, accent, readingScale, onScaleChange }) {
   const [active, setActive] = useState('intuition');
 
   useEffect(() => {
@@ -295,12 +375,12 @@ function TOC({ accent, readingScale, onScaleChange }) {
       },
       { rootMargin: '-30% 0px -55% 0px', threshold: 0 },
     );
-    SECTIONS.forEach((s) => {
+    sections.forEach((s) => {
       const el = document.getElementById(s.id);
       if (el) observer.observe(el);
     });
     return () => observer.disconnect();
-  }, []);
+  }, [sections]);
 
   return (
     <aside
@@ -309,7 +389,7 @@ function TOC({ accent, readingScale, onScaleChange }) {
     >
       <div className="marker mb-3">on this page</div>
       <ul className="flex flex-col gap-1.5">
-        {SECTIONS.map((s) => {
+        {sections.map((s) => {
           const isActive = active === s.id;
           return (
             <li key={s.id}>
@@ -388,6 +468,28 @@ function FontSizeControl({ scale, onChange }) {
         })}
       </div>
     </div>
+  );
+}
+
+/**
+ * ProseAndViz — generic optional section: prose paragraphs followed by a
+ * visualizer that lazy-loads its chunk and mounts when scrolled near the
+ * viewport. Used for physics, operands, taxonomy, ordering, evolution.
+ */
+function ProseAndViz({ id, eyebrow, section, Viz, minHeight }) {
+  return (
+    <Section id={id} eyebrow={eyebrow} title={section.title}>
+      <div className="body-prose">
+        {section.paragraphs.map((p, i) => (
+          <p key={i}>{p}</p>
+        ))}
+      </div>
+      {Viz ? (
+        <div className="mt-8">
+          <LazyViz Component={Viz} minHeight={minHeight} name={id} />
+        </div>
+      ) : null}
+    </Section>
   );
 }
 

@@ -4,6 +4,7 @@ import { ArrowUpRight, Search } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { CONCEPTS } from '../concepts/index.js';
 import { ACCENT_VAR, DOMAINS, getDomain } from '../data/domains.js';
+import { prefetchConceptPage } from '../app/prefetch.js';
 
 export default function IndexPage() {
   const [query, setQuery] = useState('');
@@ -130,9 +131,15 @@ function ConceptRow({ meta, glassRow }) {
 
   return (
     <li
-      onMouseEnter={() => setHover(true)}
+      onMouseEnter={() => {
+        setHover(true);
+        prefetchConceptPage();
+      }}
       onMouseLeave={() => setHover(false)}
-      onFocus={() => setHover(true)}
+      onFocus={() => {
+        setHover(true);
+        prefetchConceptPage();
+      }}
       onBlur={() => setHover(false)}
       style={{
         ...glassRow,
