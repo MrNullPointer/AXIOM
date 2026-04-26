@@ -5,6 +5,22 @@ import { ArrowLeft, ArrowUpRight, Cpu, Shield, Square, Zap } from 'lucide-react'
 import { CONCEPTS, getConcept, relatedConcepts } from '../concepts/index.js';
 import { ACCENT_VAR, getDomain } from '../data/domains.js';
 
+// Reading-scale presets. Stored in localStorage so the choice persists
+// across sessions and concept pages.
+const READING_SCALES = [
+  { id: 's', scale: 0.92, label: 'Small text' },
+  { id: 'm', scale: 1.0, label: 'Medium text' },
+  { id: 'l', scale: 1.18, label: 'Large text' },
+];
+const READING_SCALE_KEY = 'axiom-reading-scale';
+
+function readStoredScale() {
+  if (typeof window === 'undefined') return 1;
+  const raw = window.localStorage.getItem(READING_SCALE_KEY);
+  const num = raw ? parseFloat(raw) : NaN;
+  return Number.isFinite(num) ? num : 1;
+}
+
 const SECTIONS = [
   { id: 'intuition', label: 'Intuition' },
   { id: 'problem', label: 'Problem' },
@@ -19,6 +35,13 @@ const LENS_ICON = { performance: Zap, power: Cpu, area: Square, security: Shield
 export default function ConceptPage() {
   const { slug } = useParams();
   const concept = getConcept(slug);
+  const [readingScale, setReadingScale] = useState(readStoredScale);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(READING_SCALE_KEY, String(readingScale));
+    }
+  }, [readingScale]);
 
   if (!concept) {
     return (
@@ -42,7 +65,10 @@ export default function ConceptPage() {
   const related = relatedConcepts(meta);
 
   return (
-    <article className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10">
+    <article
+      className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10"
+      style={{ '--reading-scale': readingScale }}
+    >
       <Breadcrumb domain={domain} title={meta.title} />
 
       <Hero
@@ -55,7 +81,11 @@ export default function ConceptPage() {
       <div className="hairline mt-12" />
 
       <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-12">
-        <TOC accent={accent} />
+        <TOC
+          accent={accent}
+          readingScale={readingScale}
+          onScaleChange={setReadingScale}
+        />
         <main className="lg:col-span-9 lg:col-start-4">
           <Section id="intuition" eyebrow="intuition">
             <p className="lede">{meta.intuition}</p>
@@ -251,7 +281,7 @@ function Hero({ meta, domain, accent, Visualizer }) {
   );
 }
 
-function TOC({ accent }) {
+function TOC({ accent, readingScale, onScaleChange }) {
   const [active, setActive] = useState('intuition');
 
   useEffect(() => {
@@ -305,7 +335,59 @@ function TOC({ accent }) {
           );
         })}
       </ul>
+
+      <FontSizeControl scale={readingScale} onChange={onScaleChange} />
     </aside>
+  );
+}
+
+/**
+ * FontSizeControl — three-step text-size selector. Three "A" glyphs at
+ * increasing sizes; tapping one applies that scale to the article body
+ * via the `--reading-scale` CSS variable. The choice persists in
+ * localStorage so a returning reader keeps their setting.
+ */
+function FontSizeControl({ scale, onChange }) {
+  return (
+    <div className="mt-8">
+      <div className="marker mb-3">text size</div>
+      <div
+        className="inline-flex items-center gap-0.5 rounded-lg p-0.5"
+        style={{ border: '1px solid var(--rule)', background: 'var(--glass-bg)' }}
+        role="radiogroup"
+        aria-label="Reading text size"
+      >
+        {READING_SCALES.map((s, i) => {
+          const isActive = Math.abs(s.scale - scale) < 0.01;
+          // Tiny / standard / large "A" glyphs. The visual scale of each
+          // button conveys what the option does without needing labels.
+          const glyphSize = [12, 14, 17][i];
+          return (
+            <button
+              key={s.id}
+              type="button"
+              role="radio"
+              aria-checked={isActive}
+              aria-label={s.label}
+              title={s.label}
+              onClick={() => onChange(s.scale)}
+              className="grid h-8 w-9 place-items-center rounded-md transition-colors"
+              style={{
+                background: isActive ? 'var(--rule)' : 'transparent',
+                color: isActive ? 'var(--ink)' : 'var(--ink-faint)',
+                fontFamily: "'Fraunces', ui-serif, Georgia, serif",
+                fontSize: `${glyphSize}px`,
+                fontWeight: 500,
+                letterSpacing: '-0.01em',
+                lineHeight: 1,
+              }}
+            >
+              A
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

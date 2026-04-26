@@ -4,22 +4,23 @@ import { useTheme } from '../../app/theme.jsx';
 export default function ThemeToggle() {
   const { theme, toggle } = useTheme();
   const isDark = theme === 'dark';
+  const label = `Switch to ${isDark ? 'light' : 'dark'} theme`;
   return (
     <button
       type="button"
       onClick={toggle}
-      aria-label={`Switch to ${isDark ? 'light' : 'dark'} theme`}
-      className="group inline-flex h-9 items-center gap-2 rounded-full border px-3 text-xs"
+      aria-label={label}
+      title={label}
+      className="inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors"
       style={{
         borderColor: 'var(--rule-strong)',
         color: 'var(--ink)',
         background: 'var(--glass-bg)',
-        backdropFilter: 'blur(14px)',
       }}
     >
       <span className="relative grid h-4 w-4 place-items-center">
         <Sun
-          size={13}
+          size={15}
           className="absolute transition-all duration-500"
           style={{
             opacity: isDark ? 0 : 1,
@@ -28,7 +29,7 @@ export default function ThemeToggle() {
           aria-hidden="true"
         />
         <Moon
-          size={13}
+          size={15}
           className="absolute transition-all duration-500"
           style={{
             opacity: isDark ? 1 : 0,
@@ -36,9 +37,6 @@ export default function ThemeToggle() {
           }}
           aria-hidden="true"
         />
-      </span>
-      <span className="marker" style={{ color: 'var(--ink-faint)' }}>
-        {isDark ? 'dark' : 'light'}
       </span>
     </button>
   );

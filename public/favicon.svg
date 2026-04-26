@@ -1,16 +1,77 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!--
+    Axiom favicon — a stack of liquid-glass plates around a glowing
+    register-file core. Light comes from above: top edges are bright,
+    bottom edges fade, and each plate casts a subtle shadow on the one
+    below it, giving the icon real volume at favicon resolutions.
+    Cardinal accent dots reflect the four bus channels (data, ctrl, ack,
+    snoop) used in the live BG die shot.
+  -->
   <defs>
-    <radialGradient id="g" cx="50%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#7df9ff" stop-opacity="0.9"/>
-      <stop offset="60%" stop-color="#5aa9ff" stop-opacity="0.4"/>
-      <stop offset="100%" stop-color="#05060a" stop-opacity="1"/>
+    <radialGradient id="substrate" cx="50%" cy="35%" r="80%">
+      <stop offset="0%"  stop-color="#0a0d18"/>
+      <stop offset="100%" stop-color="#020308"/>
     </radialGradient>
+    <linearGradient id="frameStroke" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%"  stop-color="#ffe4a8" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#f5b461" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#5a3209" stop-opacity="0.35"/>
+    </linearGradient>
+    <linearGradient id="warmStroke" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%"  stop-color="#fff1c8" stop-opacity="1"/>
+      <stop offset="55%" stop-color="#ffd28a" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#7a4310" stop-opacity="0.85"/>
+    </linearGradient>
+    <linearGradient id="frameFill" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%"  stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.18"/>
+    </linearGradient>
+    <radialGradient id="coreHalo" cx="50%" cy="50%" r="55%">
+      <stop offset="0%"  stop-color="#ffe4a8" stop-opacity="0.85"/>
+      <stop offset="50%" stop-color="#f5b461" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="#f5b461" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="coreFill" cx="46%" cy="34%" r="78%">
+      <stop offset="0%"  stop-color="#fff5d8"/>
+      <stop offset="45%" stop-color="#ffd28a"/>
+      <stop offset="100%" stop-color="#7a4310"/>
+    </radialGradient>
+    <linearGradient id="spec" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%"  stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="12" fill="#05060a"/>
-  <circle cx="32" cy="32" r="22" fill="url(#g)"/>
-  <g stroke="#7df9ff" stroke-width="1.4" fill="none" opacity="0.85">
-    <path d="M8 32 H22 L26 28 H38 L42 32 H56"/>
-    <path d="M32 8 V22 L28 26 V38 L32 42 V56"/>
-    <circle cx="32" cy="32" r="3" fill="#7df9ff"/>
-  </g>
+
+  <!-- Substrate: deep silicon backdrop -->
+  <rect width="64" height="64" rx="12" fill="url(#substrate)"/>
+
+  <!-- Outer chip plate -->
+  <rect x="6.5" y="7.5" width="51" height="51" rx="9.5" fill="rgba(0,0,0,0.55)"/>
+  <rect x="6"   y="6"   width="52" height="52" rx="9"   fill="url(#frameFill)" stroke="url(#frameStroke)" stroke-width="1.2"/>
+
+  <!-- L3 plate: sits one layer deeper, casts a thin shadow -->
+  <rect x="14.6" y="15.4" width="35"  height="35"  rx="6"   fill="rgba(0,0,0,0.45)"/>
+  <rect x="14"   y="14"   width="36"  height="36"  rx="5.5" fill="url(#frameFill)" stroke="url(#frameStroke)" stroke-width="1.4"/>
+
+  <!-- L1 plate: warm, deepest layer before the core -->
+  <rect x="22.5" y="23"   width="19.4" height="19.4" rx="3.4" fill="rgba(0,0,0,0.45)"/>
+  <rect x="22"   y="22"   width="20"   height="20"   rx="3"   fill="rgba(245,180,97,0.08)" stroke="url(#warmStroke)" stroke-width="1.6"/>
+
+  <!-- Diffuse halo around the core -->
+  <circle cx="32" cy="32" r="13.5" fill="url(#coreHalo)"/>
+
+  <!-- Register-file / focal core, with a tiny specular highlight that
+       gives the dome the look of a polished gem -->
+  <rect x="27.5" y="27.5" width="9" height="9" rx="1.6" fill="url(#coreFill)"/>
+  <ellipse cx="30.7" cy="29.5" rx="1.8" ry="0.95" fill="#ffffff" opacity="0.75"/>
+
+  <!-- Top specular sheen on the chip's top edge -->
+  <line x1="14" y1="6.6" x2="36" y2="6.6" stroke="url(#spec)" stroke-width="1.0" stroke-linecap="round" opacity="0.85"/>
+
+  <!-- Cardinal bus-channel accents: yellow data, blue ctrl, green ack, red snoop -->
+  <circle cx="6"  cy="32" r="1.4" fill="#ffd66a"/>
+  <circle cx="58" cy="32" r="1.4" fill="#7dc8ff"/>
+  <circle cx="32" cy="6"  r="1.4" fill="#8aef9f"/>
+  <circle cx="32" cy="58" r="1.4" fill="#ff8a8a"/>
 </svg>

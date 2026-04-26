@@ -354,14 +354,17 @@ export default function DieHero({
       className="relative w-full"
       style={{ aspectRatio: '5 / 3', perspective: compact ? undefined : '1500px' }}
     >
-      {/* Static depth shadow — stays on the page surface so the tilt above looks
-          like a glass panel hovering. */}
+      {/* Static depth shadow — light liquid-glass slab. The busy die-shot
+          background blurs softly through the panel so floorplan labels read
+          cleanly without the die feeling detached from the page. */}
       <div
         className="absolute inset-0 rounded-2xl"
         aria-hidden="true"
         style={{
           background:
-            'radial-gradient(ellipse at 50% 30%, var(--glass-bg), transparent 65%)',
+            'radial-gradient(ellipse at 50% 35%, var(--glass-bg), transparent 70%)',
+          backdropFilter: 'blur(10px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(10px) saturate(140%)',
           boxShadow:
             '0 60px 120px -40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)',
           border: '1px solid var(--rule-strong)',
@@ -379,38 +382,36 @@ export default function DieHero({
           transition: 'transform 120ms linear',
         }}
       >
-        <canvas
-          ref={canvasRef}
-          aria-hidden="true"
-          className="absolute inset-0 h-full w-full"
-          style={{ borderRadius: 16, transform: 'translateZ(0)' }}
-        />
+        {/* Internal silicon-etching canvas removed — it competed with the
+            page-level die-shot background. The die hero now reads as a
+            clean glass slab over the BG, which provides the visible
+            chip texture through the slab. */}
 
-        {/* Pad ring stays in SVG — it's part of the chip frame, not a block. */}
-        <svg
-          viewBox={`0 0 ${VB_W} ${VB_H}`}
-          className="pointer-events-none absolute inset-0 h-full w-full"
-          aria-hidden="true"
-          preserveAspectRatio="none"
-          style={{ transform: 'translateZ(8px)' }}
-        >
-          <PadRing w={VB_W} h={VB_H} dim={!!highlightDomain} />
-          {/* In compact mode (concept page inset), keep SVG block rendering so
-              the "you are here" label inside the highlighted block shows. */}
-          {compact
-            ? DOMAINS.map((d) => (
-                <DieBlock
-                  key={d.id}
-                  domain={d}
-                  cellW={cellW}
-                  cellH={cellH}
-                  isHighlight={highlightDomain === d.id}
-                  isDimmed={!!highlightDomain && highlightDomain !== d.id}
-                  compact={compact}
-                />
-              ))
-            : null}
-        </svg>
+        {/* SVG floorplan layer — used for the compact concept-page inset
+            where we still want the "you are here" highlight label. The
+            atlas-mode pad ring (small rectangles framing the die) was
+            removed; it read as a dotted boundary around the chip. */}
+        {compact ? (
+          <svg
+            viewBox={`0 0 ${VB_W} ${VB_H}`}
+            className="pointer-events-none absolute inset-0 h-full w-full"
+            aria-hidden="true"
+            preserveAspectRatio="none"
+            style={{ transform: 'translateZ(8px)' }}
+          >
+            {DOMAINS.map((d) => (
+              <DieBlock
+                key={d.id}
+                domain={d}
+                cellW={cellW}
+                cellH={cellH}
+                isHighlight={highlightDomain === d.id}
+                isDimmed={!!highlightDomain && highlightDomain !== d.id}
+                compact={compact}
+              />
+            ))}
+          </svg>
+        ) : null}
 
         {/* Interactive flip cards — one per block. Front shows the label;
             hover flips to the back which holds the description, concept
@@ -454,10 +455,12 @@ function FlipBlockCard({ domain, isFlipped, onHover }) {
   const concepts = conceptsByDomain(domain.id);
   const accent = ACCENT_VAR[domain.accent] || 'var(--accent-1)';
   const indexNum = String(DOMAINS.indexOf(domain) + 1).padStart(2, '0');
-  // Front display label scales with block width; readable at every size.
-  const labelSize = w >= 5 ? '34px' : w >= 4 ? '28px' : w >= 3 ? '22px' : '20px';
-  // Back description scales similarly. Sans-serif (Inter) for body readability.
-  const descSize = w >= 5 ? '15px' : w >= 4 ? '14px' : '13px';
+  // Front display label scales with block width — bumped so titles feel
+  // proportional to the tile, not lost in it. Same scale curve on every
+  // breakpoint so the desktop and mobile tile share visual weight.
+  const labelSize = w >= 5 ? '46px' : w >= 4 ? '38px' : w >= 3 ? '30px' : '26px';
+  // Back description bumps in step with the front label.
+  const descSize = w >= 5 ? '16px' : w >= 4 ? '15px' : '14px';
 
   return (
     <div

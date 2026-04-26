@@ -23,18 +23,30 @@ export default function Atlas() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease }}
-        className="pt-6 pb-10 sm:pt-12 sm:pb-14"
+        className="relative pt-6 pb-10 sm:pt-12 sm:pb-14"
       >
-        <div className="marker">the atlas · v0.5</div>
-        <h1 className="display mt-4 text-[clamp(48px,7vw,120px)]">
-          From <em className="serif-italic">electrons</em>
-          <br /> to <em className="serif-italic">execution</em>.
-        </h1>
-        <p className="lede mt-5 max-w-xl">
-          A visual encyclopedia of computer architecture. Every concept lives
-          on the die where it actually runs. Tap any block to read its
-          summary, click to enter.
-        </p>
+        {/* Invisible soft-dark vignette behind the hero copy. No border,
+            no radius — just a darker pool where text lives so it reads
+            cleanly over the busy die-shot without adding visual chrome. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-12 -right-12 -top-6 h-[120%]"
+          style={{
+            background:
+              'radial-gradient(ellipse 60% 70% at 22% 50%, var(--hero-fade), var(--hero-fade-mid) 45%, transparent 75%)',
+          }}
+        />
+        <div className="relative">
+          <h1 className="display text-[clamp(48px,7vw,120px)]">
+            From <em className="serif-italic">electrons</em>
+            <br /> to <em className="serif-italic">execution</em>.
+          </h1>
+          <p className="lede mt-5 max-w-xl">
+            A visual encyclopedia of computer architecture. Every concept lives
+            on the die where it actually runs. Tap any block to read its
+            summary, click to enter.
+          </p>
+        </div>
       </motion.header>
 
       <motion.section

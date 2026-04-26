@@ -21,6 +21,10 @@
   --accent-3: #7cf3c0;
   --accent-warn: #ff7a90;
   --accent-amber: #f5b461;
+  /* Soft dark wash used as a vignette behind hero copy — keeps the title
+     readable over the busy die-shot without showing visible chrome. */
+  --hero-fade: rgba(2, 4, 8, 0.70);
+  --hero-fade-mid: rgba(2, 4, 8, 0.40);
 }
 
 :root[data-theme='light'] {
@@ -39,6 +43,10 @@
   --accent-3: #2a6f4a;
   --accent-warn: #b3361f;
   --accent-amber: #b86a1f;
+  /* Light-mode hero vignette — pale wash so the dark title stays crisp
+     over warmer busy areas. */
+  --hero-fade: rgba(244, 239, 228, 0.85);
+  --hero-fade-mid: rgba(244, 239, 228, 0.55);
 }
 
 * {
@@ -132,7 +140,9 @@ body {
 }
 
 .body-prose p {
-  font-size: 16px;
+  /* Scaled by --reading-scale, set inline by ConceptPage's font-size
+     control. Persists across sessions in localStorage. */
+  font-size: calc(16px * var(--reading-scale, 1));
   line-height: 1.65;
   color: var(--ink-soft);
   max-width: 64ch;

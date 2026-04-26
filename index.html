@@ -11,6 +11,31 @@
       content="Axiom — a visual encyclopedia of computer architecture. From electrons to execution."
     />
     <title>Axiom — From electrons to execution</title>
+
+    <!-- Open Graph / link-share preview. The image mirrors the live BG die
+         shot so the share card and the site share a visual identity. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Axiom — From electrons to execution" />
+    <meta
+      property="og:description"
+      content="A visual encyclopedia of computer architecture. Every concept lives on the die where it actually runs."
+    />
+    <!-- Primary share image — pixel art (PNG/JPG). Save the cinematic
+         die-shot at /public/og-image.jpg (1200×630, ≤1MB) and most
+         platforms (Facebook, LinkedIn, iMessage) will use it. -->
+    <meta property="og:image" content="/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Axiom — a top-down chip die shot with golden etching, concentric focal frames, and a bright register-file core." />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Axiom — From electrons to execution" />
+    <meta
+      name="twitter:description"
+      content="A visual encyclopedia of computer architecture. Every concept lives on the die where it actually runs."
+    />
+    <meta name="twitter:image" content="/og-image.jpg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -18,13 +43,15 @@
       rel="stylesheet"
     />
     <script>
-      // Avoid theme flash: read stored theme + system pref before paint.
+      // Default to dark unless the user has explicitly chosen light. System
+      // preference is intentionally ignored — the dark identity is the
+      // authored experience; light is opt-in. Read the stored choice before
+      // first paint to avoid a flash.
       (function () {
         try {
           var stored = localStorage.getItem('axiom-theme');
-          var sys = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-          var t = stored === 'light' || stored === 'dark' ? stored : sys;
-          document.documentElement.dataset.theme = t;
+          document.documentElement.dataset.theme =
+            stored === 'light' ? 'light' : 'dark';
         } catch (e) {
           document.documentElement.dataset.theme = 'dark';
         }
