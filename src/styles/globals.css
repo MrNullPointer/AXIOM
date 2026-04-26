@@ -463,6 +463,198 @@ body {
 }
 
 /* ---------------------------------------------------------------- *
+ * Atlas block — magnetic lift, dim-others, and clock breath.
+ *
+ *   • [data-state="self"]  → block lifts toward the viewer, gains a
+ *                             colored glow, becomes the focal unit.
+ *   • [data-state="other"] → block fades and desaturates so the
+ *                             hovered one reads as the only lit unit.
+ *   • [data-state="idle"]  → resting state.
+ *
+ * Lift uses translateZ so it composes cleanly with the parent's
+ * perspective tilt. --block-accent is the per-domain color, set
+ * inline on each block so the glow + breath inherit the right hue.
+ * ---------------------------------------------------------------- */
+.atlas-block {
+  transition:
+    transform 460ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 380ms ease,
+    filter 380ms ease;
+  will-change: transform, opacity;
+}
+
+.atlas-block[data-state='self'] {
+  transform: translateZ(36px) scale(1.025);
+  z-index: 6;
+  filter: drop-shadow(
+    0 24px 40px color-mix(in srgb, var(--block-accent, #7df9ff) 35%, transparent)
+  );
+}
+
+.atlas-block[data-state='other'] {
+  opacity: 0.42;
+  filter: saturate(0.55) brightness(0.88);
+}
+
+.atlas-block-clock {
+  position: absolute;
+  inset: 8px;
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  animation: atlas-block-breath 4.6s ease-in-out infinite both;
+}
+
+/* The breath: a slow inset ring pulses in copper-tinted accent.
+   Most of the cycle is dark — the glow only blooms briefly so the
+   eye reads it as a chip clock domain firing, not a steady light. */
+@keyframes atlas-block-breath {
+  0%, 100% {
+    opacity: 0;
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+  44% {
+    opacity: 0.55;
+    box-shadow:
+      inset 0 0 16px -2px
+        color-mix(in srgb, var(--block-accent, #7df9ff) 55%, transparent),
+      inset 0 0 0 1px
+        color-mix(in srgb, var(--block-accent, #7df9ff) 22%, transparent);
+  }
+  56% {
+    opacity: 0.55;
+    box-shadow:
+      inset 0 0 16px -2px
+        color-mix(in srgb, var(--block-accent, #7df9ff) 55%, transparent),
+      inset 0 0 0 1px
+        color-mix(in srgb, var(--block-accent, #7df9ff) 22%, transparent);
+  }
+}
+
+/* When self-hovered, the breath speeds up dramatically and stays
+   half-lit — the clock domain is awake, not idling. */
+.atlas-block[data-state='self'] .atlas-block-clock {
+  animation-duration: 1.1s;
+  opacity: 0.9;
+}
+
+.atlas-block[data-state='other'] .atlas-block-clock {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atlas-block { transition: none; }
+  .atlas-block[data-state='self'] { transform: none; }
+  .atlas-block-clock { animation: none; opacity: 0; }
+}
+
+/* ---------------------------------------------------------------- *
+ * Atlas cinema rig — homepage-only. Four CSS variables drive every
+ * depth illusion on the page. The values come from a single rAF
+ * loop in App.jsx Layout so every overlay stays phase-locked.
+ *
+ *   --bg-rot-x / --bg-rot-y : the BG die plane's tilt in 3D
+ *   --spot-x   / --spot-y   : viewport-anchored cursor position
+ *
+ * Fallbacks below keep the rest of the app a no-op when the
+ * homepage isn't mounted.
+ * ---------------------------------------------------------------- */
+body {
+  --bg-rot-x: 0deg;
+  --bg-rot-y: 0deg;
+  --spot-x: 50%;
+  --spot-y: 50%;
+  --bg-zoom: 1;
+  --narrative-dim: 0;
+}
+
+/* Narrative dim — a viewport-fixed dark wash that fades up as the user
+   scrolls into the cache-miss narrative section. Atlas page sets
+   --narrative-dim from the scroll progress; off-homepage routes leave
+   it at 0. Pointer-events none so cursor still hits content underneath.
+   Z-stacked above CircuitFlow (z-0) and below the navbar (z-10). */
+.atlas-narrative-dim {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: rgba(2, 4, 10, 0.78);
+  opacity: var(--narrative-dim, 0);
+  transition: opacity 380ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The BG perspective container — fixed full-viewport box that holds
+   the tilting wafer plane. Perspective is high (2400px) so the
+   rotation reads as a confident chip surface, not a fish-eye lens. */
+.atlas-bg-perspective {
+  perspective: 2400px;
+  perspective-origin: 50% 50%;
+}
+
+/* The wafer plane — sits exactly over the viewport. The canvas
+   inside uses viewport units so its block layout positions the
+   chip's perimeter content at the actual viewport edges (where
+   it belongs visually). At max tilt (~3.6°) the corners may
+   reveal a few pixels of body bg, but body bg (#05060a) and
+   canvas bg (#04060c) are visually identical, so it's invisible. */
+.atlas-bg-tilt {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--bg-rot-x)) rotateY(var(--bg-rot-y))
+             scale(var(--bg-zoom, 1));
+  transform-origin: 50% 50%;
+  /* Zoom transitions smoothly even though the JS sets it on each frame
+     of scroll — the smaller deltas are imperceptible, only big jumps
+     get smoothed. Tilt rotation is already smoothed in the rAF loop. */
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas-bg-tilt { transition: none; }
+}
+
+/* Warm copper bloom — sits on top, screen-blended. Lights the silicon
+   underneath without darkening anything else (no vignette, no DOF —
+   those killed visibility of the chip's perimeter cache columns).
+   Bloom is small + low-alpha: a confident pinpoint warmth at the
+   cursor, never a floodlight. */
+.atlas-spotlight {
+  z-index: 1;
+  mix-blend-mode: screen;
+  background: radial-gradient(
+    circle 200px at var(--spot-x) var(--spot-y),
+    rgba(245, 180, 97, 0.085) 0%,
+    rgba(245, 180, 97, 0.05) 22%,
+    rgba(125, 249, 255, 0.025) 50%,
+    transparent 72%
+  );
+}
+
+:root[data-theme='light'] .atlas-spotlight {
+  background: radial-gradient(
+    circle 240px at var(--spot-x) var(--spot-y),
+    rgba(184, 106, 31, 0.18) 0%,
+    rgba(184, 106, 31, 0.10) 18%,
+    rgba(29, 58, 122, 0.05) 45%,
+    transparent 70%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atlas-bg-tilt { transform: none; will-change: auto; }
+  .atlas-spotlight { display: none; }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .atlas-bg-tilt { transform: none; }
+  .atlas-spotlight { display: none; }
+}
+
+/* ---------------------------------------------------------------- *
  * Custom cursor. EtchCursor adds .cursor-hidden to <body> when it
  * mounts so the native cursor disappears. Removed automatically when
  * the user picks motion: off.

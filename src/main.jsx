@@ -19,3 +19,26 @@ createRoot(document.getElementById('root')).render(
     </ThemeProvider>
   </StrictMode>,
 );
+
+// Boot loader handoff. The loader (in index.html) shows from the moment
+// the HTML parses; we keep it on screen for a minimum of ~1.5s so the
+// chip-power-on animation completes, then fade it out and remove it.
+// Doing this AFTER createRoot guarantees the React tree has rendered
+// at least once before we start the fade.
+{
+  const loader = document.getElementById('axiom-loader');
+  if (loader) {
+    const MIN_VISIBLE_MS = 1500;
+    const start = performance.now();
+    const fade = () => {
+      const elapsed = performance.now() - start;
+      const wait = Math.max(0, MIN_VISIBLE_MS - elapsed);
+      setTimeout(() => {
+        loader.classList.add('is-out');
+        setTimeout(() => loader.remove(), 650);
+      }, wait);
+    };
+    if (document.readyState === 'complete') fade();
+    else window.addEventListener('load', fade, { once: true });
+  }
+}

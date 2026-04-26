@@ -1,0 +1,634 @@
+/* ----------------------------------------------------------------- *
+ * StageAnimations.css — physics-first-principles keyframes.
+ *
+ * Each stage's deep visualization in StageAnimations.jsx wires CSS
+ * classes to the keyframes below. --stage-accent is set inline from
+ * the active stage's colour (STAGE_COLORS in scenarioStages.js).
+ * ----------------------------------------------------------------- */
+
+.sv-host {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+  color: var(--ink);
+}
+
+.sv-svg {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: visible;
+}
+
+.sv-label {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--ink-faint);
+}
+
+/* ============== Pluck source indicator ============== */
+@keyframes plucked-source-pulse {
+  0%, 100% {
+    box-shadow: 0 0 24px -4px var(--stage-color, currentColor),
+                inset 0 0 24px -4px var(--stage-color, currentColor);
+    opacity: 0.7;
+  }
+  50% {
+    box-shadow: 0 0 36px -2px var(--stage-color, currentColor),
+                inset 0 0 36px -2px var(--stage-color, currentColor);
+    opacity: 1;
+  }
+}
+
+/* ============== Stage 0: PIPELINE ============== */
+.sv-clock-edge {
+  animation: pipe-clock-edge 2.4s linear infinite;
+}
+@keyframes pipe-clock-edge {
+  0%   { transform: translateX(0); opacity: 0; }
+  10%  { opacity: 0.45; }
+  90%  { opacity: 0.45; }
+  100% { transform: translateX(540px); opacity: 0; }
+}
+
+/* DFF latch glow — fires per stage, staggered by 0.48s (one clock period) */
+.sv-dff-latch { animation: pipe-dff-latch 2.4s linear infinite; }
+.sv-dff-0-0, .sv-dff-0-1, .sv-dff-0-2, .sv-dff-0-3 { animation-delay: 0s; }
+.sv-dff-1-0, .sv-dff-1-1, .sv-dff-1-2, .sv-dff-1-3 .sv-dff-latch { animation-delay: 0.48s; }
+.sv-dff-1-0 .sv-dff-latch, .sv-dff-1-1 .sv-dff-latch,
+.sv-dff-1-2 .sv-dff-latch, .sv-dff-1-3 .sv-dff-latch { animation-delay: 0.48s; }
+.sv-dff-2-0 .sv-dff-latch, .sv-dff-2-1 .sv-dff-latch,
+.sv-dff-2-2 .sv-dff-latch, .sv-dff-2-3 .sv-dff-latch { animation-delay: 0.96s; }
+.sv-dff-3-0 .sv-dff-latch, .sv-dff-3-1 .sv-dff-latch,
+.sv-dff-3-2 .sv-dff-latch, .sv-dff-3-3 .sv-dff-latch { animation-delay: 1.44s; }
+.sv-dff-4-0 .sv-dff-latch, .sv-dff-4-1 .sv-dff-latch,
+.sv-dff-4-2 .sv-dff-latch, .sv-dff-4-3 .sv-dff-latch { animation-delay: 1.92s; }
+@keyframes pipe-dff-latch {
+  0%, 100% { opacity: 0; }
+  3%, 18%  { opacity: 0.55; }
+  25%      { opacity: 0; }
+}
+
+/* Token — instruction badge moving stage to stage */
+.sv-token, .sv-token-label { animation: pipe-token-show 2.4s linear infinite; }
+.sv-token-0, .sv-token-label.sv-token-0 { animation-delay: 0s; }
+.sv-token-1, .sv-token-label.sv-token-1 { animation-delay: 0.48s; }
+.sv-token-2, .sv-token-label.sv-token-2 { animation-delay: 0.96s; }
+.sv-token-3, .sv-token-label.sv-token-3 { animation-delay: 1.44s; }
+.sv-token-4, .sv-token-label.sv-token-4 { animation-delay: 1.92s; }
+@keyframes pipe-token-show {
+  0%, 100% { opacity: 0; }
+  6%       { opacity: 1; }
+  18%      { opacity: 1; }
+  24%      { opacity: 0; }
+}
+
+/* Inter-stage bus flicker — control signals firing */
+.sv-interstage { animation: pipe-interstage 2.4s linear infinite; opacity: 0.3; }
+.sv-interstage-0 { animation-delay: 0.18s; }
+.sv-interstage-1 { animation-delay: 0.66s; }
+.sv-interstage-2 { animation-delay: 1.14s; }
+.sv-interstage-3 { animation-delay: 1.62s; }
+@keyframes pipe-interstage {
+  0%, 100% { opacity: 0.18; }
+  10%      { opacity: 0.85; }
+}
+
+/* ============== Stage 1: SRAM CACHE ============== */
+.sv-sram-wl  { animation: sram-wl 2.4s ease-in-out infinite; }
+.sv-sram-bl  { animation: sram-bl 2.4s ease-in-out infinite; animation-delay: 0.2s; }
+.sv-sram-blb { animation: sram-bl 2.4s ease-in-out infinite; animation-delay: 0.2s; }
+@keyframes sram-wl {
+  0%, 100% { opacity: 0.4; stroke-width: 1.2; }
+  20%, 35% { opacity: 1; stroke-width: 2; }
+}
+@keyframes sram-bl {
+  0%, 100% { opacity: 0.45; }
+  35%, 55% { opacity: 0.95; }
+}
+.sv-sram-q { animation: sram-q-pulse 2.4s ease-in-out infinite; }
+@keyframes sram-q-pulse {
+  0%, 100% { r: 2; opacity: 0.7; }
+  35%      { r: 3.5; opacity: 1; }
+}
+.sv-sram-bit { animation: sram-bit-pulse 2.4s ease-in-out infinite; }
+@keyframes sram-bit-pulse {
+  0%, 100% { opacity: 0.55; }
+  40%      { opacity: 1; }
+}
+.sv-sram-x {
+  opacity: 0;
+  animation: sram-x 2.4s ease-out infinite;
+}
+@keyframes sram-x {
+  0%, 50% { opacity: 0; transform: scale(0.5); }
+  60%, 95%{ opacity: 1; transform: scale(1.2); }
+  100%    { opacity: 0; }
+}
+.sv-sram-addr {
+  animation: sram-addr-blink 2.4s ease-in-out infinite;
+}
+@keyframes sram-addr-blink {
+  0%, 100% { opacity: 0.4; }
+  10%, 25% { opacity: 1; }
+}
+.sv-sram-fwd {
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: sram-fwd 2.4s ease-out infinite;
+}
+@keyframes sram-fwd {
+  0%, 70% { stroke-dashoffset: 200; opacity: 0.4; }
+  85%     { stroke-dashoffset: 0; opacity: 1; }
+  100%    { stroke-dashoffset: 0; opacity: 0; }
+}
+
+/* ============== Stage 2: BUS ============== */
+.sv-bus-edge {
+  opacity: 0;
+  animation: bus-edge 1.8s linear infinite;
+}
+@keyframes bus-edge {
+  0%   { transform: translateX(0); opacity: 0; }
+  5%   { opacity: 0.95; }
+  85%  { opacity: 0.95; }
+  100% { transform: translateX(420px); opacity: 0; }
+}
+.sv-bus-bit {
+  opacity: 0;
+  animation: bus-bit 1.8s linear infinite;
+}
+@keyframes bus-bit {
+  0%, 90% { opacity: 0; }
+  92%, 100% { opacity: 0.95; }
+}
+
+/* ============== Stage 3: DRAM ============== */
+.sv-dram-row {
+  animation: dram-row 3.2s ease-in-out infinite;
+}
+@keyframes dram-row {
+  0%, 15% { opacity: 0; }
+  25%     { opacity: 0.65; }
+  60%     { opacity: 0.65; }
+  75%     { opacity: 0; }
+  100%    { opacity: 0; }
+}
+.sv-dram-wl {
+  animation: dram-wl 3.2s ease-in-out infinite;
+}
+@keyframes dram-wl {
+  0%, 100% { opacity: 0.45; stroke-width: 1.4; }
+  20%, 35% { opacity: 1; stroke-width: 2.4; }
+}
+.sv-dram-bl {
+  animation: dram-bl 3.2s ease-in-out infinite;
+}
+@keyframes dram-bl {
+  0%, 35% { opacity: 0.5; }
+  50%, 65%{ opacity: 0.95; }
+  80%     { opacity: 0.5; }
+}
+.sv-dram-charge {
+  animation: dram-charge 3.2s ease-out infinite;
+}
+@keyframes dram-charge {
+  0%, 30%  { cy: 50; opacity: 0; }
+  35%      { opacity: 1; cy: 50; }
+  55%      { opacity: 1; cy: 18; }
+  70%, 100%{ opacity: 0; cy: 18; }
+}
+.sv-dram-out {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: dram-out 3.2s ease-out infinite;
+}
+@keyframes dram-out {
+  0%, 60% { stroke-dashoffset: 40; opacity: 0.4; }
+  75%     { stroke-dashoffset: 0; opacity: 1; }
+  90%     { opacity: 1; }
+  100%    { opacity: 0; }
+}
+.sv-dram-resolved {
+  animation: dram-resolved 3.2s ease-out infinite;
+}
+@keyframes dram-resolved {
+  0%, 70%  { opacity: 0; transform: scale(0.5); }
+  82%      { opacity: 1; transform: scale(1.4); }
+  92%      { opacity: 1; transform: scale(1); }
+  100%     { opacity: 0; }
+}
+
+/* ============== Stage 4: COHERENCE ============== */
+.sv-coh-state {
+  animation: coh-state-pulse 3s ease-in-out infinite;
+}
+.sv-coh-state-0 { animation-delay: 0s; }
+.sv-coh-state-1 { animation-delay: 0.6s; }
+.sv-coh-state-2 { animation-delay: 0.8s; }
+.sv-coh-state-3 { animation-delay: 1.0s; }
+@keyframes coh-state-pulse {
+  0%, 100% { opacity: 0.55; }
+  35%      { opacity: 1; }
+}
+.sv-coh-dir-bit {
+  animation: coh-dir-bit 3s ease-in-out infinite;
+}
+.sv-coh-dir-bit-0-0 { animation-delay: 0s; }
+.sv-coh-dir-bit-0-1 { animation-delay: 0.05s; }
+.sv-coh-dir-bit-1-0 { animation-delay: 0.6s; }
+.sv-coh-dir-bit-1-1 { animation-delay: 0.65s; }
+.sv-coh-dir-bit-2-0 { animation-delay: 0.8s; }
+.sv-coh-dir-bit-2-1 { animation-delay: 0.85s; }
+.sv-coh-dir-bit-3-0 { animation-delay: 1.0s; }
+.sv-coh-dir-bit-3-1 { animation-delay: 1.05s; }
+@keyframes coh-dir-bit {
+  0%, 100% { opacity: 0.3; }
+  30%      { opacity: 0.85; }
+}
+.sv-coh-snoop {
+  animation: coh-snoop 2s linear infinite;
+}
+@keyframes coh-snoop {
+  0%, 100% { opacity: 0.2; }
+  40%      { opacity: 0.85; }
+}
+
+/* ============== Stage 5: FILL CASCADE ============== */
+.sv-fill-line {
+  opacity: 0;
+  animation: fill-line 4.2s ease-in-out infinite;
+}
+@keyframes fill-line {
+  0%, 5%   { opacity: 0; transform: scale(0.7); }
+  10%, 28% { opacity: 1; transform: scale(1); }
+  35%, 100%{ opacity: 0.55; transform: scale(1); }
+}
+.sv-fill-victim {
+  opacity: 0;
+  animation: fill-victim 4.2s ease-out infinite;
+}
+@keyframes fill-victim {
+  0%, 15%  { opacity: 0; transform: translateX(0); }
+  25%      { opacity: 0.7; transform: translateX(0); }
+  40%      { opacity: 0; transform: translateX(36px); }
+  100%     { opacity: 0; }
+}
+.sv-fill-arrow {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: fill-arrow 4.2s ease-in-out infinite;
+}
+.sv-fill-arrow-0 { animation-delay: 0.2s; }
+.sv-fill-arrow-1 { animation-delay: 0.9s; }
+@keyframes fill-arrow {
+  0%, 5%  { stroke-dashoffset: 40; opacity: 0.4; }
+  20%     { stroke-dashoffset: 0; opacity: 1; }
+  100%    { stroke-dashoffset: 0; opacity: 0.4; }
+}
+
+/* ============== Stage 1 — L2 (transistor cross-section) ============== */
+.sv-trans-gate {
+  animation: trans-gate 1.6s ease-in-out infinite;
+}
+@keyframes trans-gate {
+  0%, 100% { opacity: 0.45; }
+  35%      { opacity: 0.85; }
+}
+.sv-trans-channel {
+  opacity: 0;
+  animation: trans-channel 1.6s ease-in-out infinite;
+}
+@keyframes trans-channel {
+  0%, 30%  { opacity: 0; }
+  45%, 95% { opacity: 1; }
+  100%     { opacity: 0; }
+}
+
+/* ============== Stage 6: RETIRE ============== */
+.sv-retire-rob-load {
+  animation: retire-rob 2.6s ease-in-out infinite;
+}
+@keyframes retire-rob {
+  0%, 100% { fill-opacity: 0.18; stroke-opacity: 0.85; }
+  40%      { fill-opacity: 0.55; stroke-opacity: 1; }
+}
+.sv-retire-pointer {
+  animation: retire-pointer 2.6s ease-out infinite;
+}
+@keyframes retire-pointer {
+  0%, 100% { transform: translateX(0); opacity: 0.7; }
+  30%      { transform: translateX(128px); opacity: 1; }
+  60%      { transform: translateX(128px); opacity: 1; }
+  80%      { transform: translateX(128px); opacity: 0; }
+}
+.sv-retire-wl {
+  animation: retire-wl 2.6s ease-in-out infinite;
+}
+@keyframes retire-wl {
+  0%, 35%  { opacity: 0.4; stroke-width: 1.2; }
+  45%, 65% { opacity: 1; stroke-width: 2.4; }
+  75%      { opacity: 0.4; }
+}
+.sv-retire-bl {
+  animation: retire-bl 2.6s ease-in-out infinite;
+}
+@keyframes retire-bl {
+  0%, 45%  { opacity: 0.4; }
+  55%, 70% { opacity: 1; }
+}
+.sv-retire-x1 {
+  animation: retire-x1 2.6s ease-out infinite;
+}
+@keyframes retire-x1 {
+  0%, 50%  { fill-opacity: 0.18; }
+  65%      { fill-opacity: 0.95; filter: drop-shadow(0 0 10px var(--stage-accent, currentColor)); }
+  90%      { fill-opacity: 0.95; }
+  100%     { fill-opacity: 0.18; }
+}
+.sv-retire-value {
+  opacity: 0;
+  animation: retire-value 2.6s ease-out infinite;
+}
+@keyframes retire-value {
+  0%, 60%  { opacity: 0; }
+  72%, 92% { opacity: 1; }
+  100%     { opacity: 0; }
+}
+
+/* ============== Pipeline new sub-vizes ============== */
+.sv-pipe-latch {
+  animation: pipe-latch 2.4s linear infinite;
+}
+@keyframes pipe-latch {
+  0%, 80%, 100% { fill-opacity: 0.15; }
+  20%, 35%      { fill-opacity: 0.6; }
+}
+.sv-pipe-bus { animation: pipe-bus 2.4s linear infinite; opacity: 0.2; }
+.sv-pipe-bus-0 { animation-delay: 0.1s; }
+.sv-pipe-bus-1 { animation-delay: 0.58s; }
+.sv-pipe-bus-2 { animation-delay: 1.06s; }
+.sv-pipe-bus-3 { animation-delay: 1.54s; }
+@keyframes pipe-bus {
+  0%, 100% { opacity: 0.2; }
+  20%      { opacity: 0.9; }
+}
+.sv-pipe-rs {
+  opacity: 0.55;
+  animation: pipe-rs 2.4s ease-in-out infinite;
+}
+@keyframes pipe-rs {
+  0%, 100% { opacity: 0.55; transform: translateX(0); }
+  40%      { opacity: 1; transform: translateX(4px); }
+}
+.sv-pipe-wakeup {
+  fill-opacity: 0.2;
+  animation: pipe-wakeup 1.4s ease-in-out infinite;
+}
+@keyframes pipe-wakeup {
+  0%, 100% { fill-opacity: 0.2; }
+  40%      { fill-opacity: 0.95; }
+}
+.sv-pipe-issue-arrow {
+  animation: pipe-issue-arrow 1.6s ease-out infinite;
+  opacity: 0;
+}
+@keyframes pipe-issue-arrow {
+  0%, 70% { opacity: 0; transform: translateX(0); }
+  85%     { opacity: 1; transform: translateX(8px); }
+  100%    { opacity: 0; }
+}
+.sv-pipe-master-out, .sv-pipe-q {
+  animation: pipe-q-flicker 2s ease-in-out infinite;
+  opacity: 0.5;
+}
+@keyframes pipe-q-flicker {
+  0%, 100% { opacity: 0.5; }
+  40%, 65% { opacity: 1; }
+}
+.sv-pipe-q-dot {
+  animation: pipe-q-dot 2s ease-in-out infinite;
+}
+@keyframes pipe-q-dot {
+  0%, 100% { opacity: 0.4; r: 4; }
+  55%      { opacity: 1; r: 6; }
+}
+.sv-pipe-clk-master, .sv-pipe-clk-slave {
+  animation: pipe-clk 2s linear infinite;
+  opacity: 0.5;
+}
+.sv-pipe-clk-slave { animation-delay: 1s; }
+@keyframes pipe-clk {
+  0%, 100% { opacity: 0.4; }
+  10%, 40% { opacity: 1; }
+}
+
+/* ============== Bus new sub-vizes ============== */
+.sv-bus-trace {
+  stroke-dasharray: 720;
+  stroke-dashoffset: 720;
+  animation: bus-trace 3s ease-in-out infinite;
+}
+@keyframes bus-trace {
+  0%   { stroke-dashoffset: 720; }
+  60%  { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -720; }
+}
+.sv-bus-cursor {
+  animation: bus-cursor 3s ease-in-out infinite;
+}
+@keyframes bus-cursor {
+  0%   { transform: translateX(60px); }
+  100% { transform: translateX(540px); }
+}
+.sv-bus-out {
+  animation: bus-out 1.6s ease-in-out infinite;
+  opacity: 0.6;
+}
+@keyframes bus-out {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+.sv-bus-charge {
+  filter: drop-shadow(0 0 4px var(--stage-accent, currentColor));
+}
+
+/* ============== DRAM new sub-vizes ============== */
+.sv-dram-ctrl-pulse {
+  animation: dram-ctrl 2s ease-in-out infinite;
+}
+@keyframes dram-ctrl {
+  0%, 100% { stroke-opacity: 0.4; r: 14; }
+  40%      { stroke-opacity: 1; r: 18; }
+}
+.sv-dram-addr-bus {
+  animation: dram-addr 2.4s ease-in-out infinite;
+}
+@keyframes dram-addr {
+  0%, 100% { stroke-opacity: 0.45; }
+  40%      { stroke-opacity: 1; }
+}
+.sv-dram-col {
+  animation: dram-col 3s ease-in-out infinite;
+}
+@keyframes dram-col {
+  0%, 50%  { opacity: 0; }
+  60%, 85% { opacity: 0.85; }
+  95%, 100%{ opacity: 0; }
+}
+.sv-dram-sense {
+  animation: dram-sense 3s ease-out infinite;
+  opacity: 0;
+}
+@keyframes dram-sense {
+  0%, 70% { fill-opacity: 0; }
+  80%, 92%{ fill-opacity: 0.55; }
+  100%    { fill-opacity: 0; }
+}
+.sv-dram-out-line {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+  animation: dram-out-line 3s ease-in-out infinite;
+}
+@keyframes dram-out-line {
+  0%, 80% { stroke-dashoffset: 50; opacity: 0.4; }
+  92%     { stroke-dashoffset: 0; opacity: 1; }
+  100%    { opacity: 0; }
+}
+
+/* ============== Coherence new sub-vizes ============== */
+.sv-coh-core-lit {
+  animation: coh-core-lit 2.4s ease-in-out infinite;
+}
+@keyframes coh-core-lit {
+  0%, 100% { fill-opacity: 0.18; }
+  40%      { fill-opacity: 0.4; }
+}
+.sv-coh-bit {
+  animation: coh-bit 2.4s ease-in-out infinite;
+  fill-opacity: 0.3;
+}
+@keyframes coh-bit {
+  0%, 100% { fill-opacity: 0.3; }
+  40%      { fill-opacity: 0.95; }
+}
+.sv-coh-bit-set, .sv-coh-bit-pulse {
+  animation: coh-bit-pulse 2s ease-in-out infinite;
+}
+@keyframes coh-bit-pulse {
+  0%, 100% { fill-opacity: 0.55; }
+  40%      { fill-opacity: 1; }
+}
+.sv-coh-clk {
+  animation: coh-clk 2s linear infinite;
+}
+@keyframes coh-clk {
+  0%, 100% { opacity: 0.5; }
+  20%, 50% { opacity: 1; }
+}
+
+/* ============== Fill new sub-vizes ============== */
+.sv-fill-tag-new {
+  animation: fill-tag-new 3s ease-in-out infinite;
+  fill-opacity: 0;
+}
+@keyframes fill-tag-new {
+  0%, 30% { fill-opacity: 0; }
+  45%     { fill-opacity: 0.95; }
+  90%     { fill-opacity: 0.85; }
+  100%    { fill-opacity: 0.85; }
+}
+.sv-fill-byte {
+  animation: fill-byte 3s ease-in-out infinite;
+  fill-opacity: 0;
+}
+@keyframes fill-byte {
+  0%, 30% { fill-opacity: 0; }
+  50%, 90%{ fill-opacity: 0.85; }
+}
+.sv-fill-lru-set {
+  animation: fill-lru 3s ease-in-out infinite;
+}
+@keyframes fill-lru {
+  0%, 100% { fill-opacity: 0.25; }
+  40%      { fill-opacity: 0.95; }
+}
+.sv-fill-wl {
+  animation: fill-wl 2.4s ease-in-out infinite;
+}
+@keyframes fill-wl {
+  0%, 100% { opacity: 0.45; stroke-width: 2.4; }
+  30%, 50% { opacity: 1; stroke-width: 3.2; }
+}
+.sv-fill-bl {
+  animation: fill-bl 2.4s ease-in-out infinite;
+}
+@keyframes fill-bl {
+  0%, 100% { opacity: 0.45; }
+  40%      { opacity: 0.95; }
+}
+.sv-fill-cell {
+  animation: fill-cell 2.4s ease-in-out infinite;
+}
+@keyframes fill-cell {
+  0%, 100% { fill-opacity: 0.3; }
+  60%      { fill-opacity: 0.95; }
+}
+
+/* ============== Retire new sub-vizes ============== */
+.sv-retire-wire {
+  stroke-dasharray: 140;
+  stroke-dashoffset: 140;
+  animation: retire-wire 2s ease-in-out infinite;
+}
+@keyframes retire-wire {
+  0%, 25% { stroke-dashoffset: 140; opacity: 0.4; }
+  60%     { stroke-dashoffset: 0; opacity: 1; }
+  100%    { stroke-dashoffset: 0; opacity: 0.5; }
+}
+.sv-retire-cell {
+  animation: retire-cell 2s ease-in-out infinite;
+}
+@keyframes retire-cell {
+  0%, 100% { fill-opacity: 0.25; }
+  60%      { fill-opacity: 0.95; }
+}
+.sv-retire-out {
+  animation: retire-out 2s ease-in-out infinite;
+}
+@keyframes retire-out {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1; }
+}
+.sv-retire-data {
+  animation: retire-data 2s ease-in-out infinite;
+}
+@keyframes retire-data {
+  0%, 100% { stroke-opacity: 0.45; }
+  40%      { stroke-opacity: 1; }
+}
+
+/* Reduced motion — skip all animation */
+@media (prefers-reduced-motion: reduce) {
+  .sv-clock-edge, .sv-dff-latch, .sv-token, .sv-token-label,
+  .sv-interstage,
+  .sv-sram-wl, .sv-sram-bl, .sv-sram-blb, .sv-sram-q, .sv-sram-bit,
+  .sv-sram-x, .sv-sram-addr, .sv-sram-fwd,
+  .sv-bus-edge, .sv-bus-bit,
+  .sv-dram-row, .sv-dram-wl, .sv-dram-bl, .sv-dram-charge,
+  .sv-dram-out, .sv-dram-resolved,
+  .sv-coh-state, .sv-coh-dir-bit, .sv-coh-snoop, .sv-coh-pkt,
+  .sv-fill-line, .sv-fill-victim, .sv-fill-arrow,
+  .sv-retire-rob-load, .sv-retire-pointer, .sv-retire-wl,
+  .sv-retire-bl, .sv-retire-x1, .sv-retire-value {
+    animation: none;
+  }
+}

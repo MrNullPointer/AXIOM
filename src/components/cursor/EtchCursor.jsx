@@ -2,38 +2,32 @@ import { useEffect, useRef } from 'react';
 import { useMotion } from '../../app/motion.jsx';
 
 /**
- * EtchCursor — replaces the native cursor with a tiny copper bead that
- * leaves a faint, slowly-fading etch on the substrate as you move.
+ * EtchCursor — replaces the native cursor with a tiny copper bead.
  *
- * Two canvases work together:
+ * The bead canvas (z-70, above content) renders the bead at the cursor
+ * point, a soft halo around it, and a subtle ring when hovering
+ * interactive elements.
  *
- *   • etch canvas (z-1, behind content)  — long-lived, low-alpha trail
- *     that lives on the silicon plane. Fades over ETCH_LIFETIME.
- *   • bead canvas (z-70, above content)  — the bead at the cursor point,
- *     a soft halo, and a subtle ring when hovering interactive elements.
- *
- * The bead is the user's "now". The etch is "where you've been" — and
- * because it lives BEHIND the prose, it never fights the text.
+ * The long-lived etch trail was removed: with the new viewport
+ * spotlight + vignette tracking the cursor, a copper trail competed
+ * with the spotlight for the eye. The bead alone is enough — it's the
+ * functional cursor; the spotlight carries the "I am here" signal.
  *
  * Motion gating:
- *   full → bead + animated halo + etch trail + hover ring (smoothed)
- *   calm → bead only, instant hover state (no halo pulse, no trail)
+ *   full → bead + smoothed halo + hover ring
+ *   calm → bead only, instant hover state (no halo growth)
  *   off  → component returns null, native cursor restored.
  *
  * Disabled on coarse-pointer devices (touch). Theme-aware: reads
  * --accent-amber on mount and on theme change.
  */
 
-const ETCH_LIFETIME = 6500;
-const ETCH_MAX_POINTS = 220;
-const ETCH_SAMPLE_MIN_DIST = 4; // px — below this, skip new sample
 const HOVER_SELECTORS =
   'a, button, [role="button"], input, textarea, select, [contenteditable=""], [contenteditable="true"], .pad';
 
 export default function EtchCursor() {
   const { level } = useMotion();
   const beadCanvasRef = useRef(null);
-  const etchCanvasRef = useRef(null);
 
   useEffect(() => {
     if (level === 'off') return undefined;
@@ -45,23 +39,19 @@ export default function EtchCursor() {
     }
 
     const beadCanvas = beadCanvasRef.current;
-    const etchCanvas = etchCanvasRef.current;
-    if (!beadCanvas || !etchCanvas) return undefined;
+    if (!beadCanvas) return undefined;
     const beadCtx = beadCanvas.getContext('2d');
-    const etchCtx = etchCanvas.getContext('2d');
-    if (!beadCtx || !etchCtx) return undefined;
+    if (!beadCtx) return undefined;
 
     document.body.classList.add('cursor-hidden');
 
     let dpr = window.devicePixelRatio || 1;
     function resize() {
       dpr = window.devicePixelRatio || 1;
-      [beadCanvas, etchCanvas].forEach((c) => {
-        c.width = window.innerWidth * dpr;
-        c.height = window.innerHeight * dpr;
-        c.style.width = `${window.innerWidth}px`;
-        c.style.height = `${window.innerHeight}px`;
-      });
+      beadCanvas.width = window.innerWidth * dpr;
+      beadCanvas.height = window.innerHeight * dpr;
+      beadCanvas.style.width = `${window.innerWidth}px`;
+      beadCanvas.style.height = `${window.innerHeight}px`;
     }
     resize();
     window.addEventListener('resize', resize);
@@ -89,22 +79,12 @@ export default function EtchCursor() {
     let pressed = false;
     let hoverT = 0; // smoothed [0..1]
 
-    /** @type {{x:number,y:number,t:number}[]} */
-    const points = [];
     const animated = level !== 'calm';
 
     function onMove(e) {
       mx = e.clientX;
       my = e.clientY;
       active = true;
-      const last = points[points.length - 1];
-      if (
-        !last ||
-        Math.hypot(mx - last.x, my - last.y) >= ETCH_SAMPLE_MIN_DIST
-      ) {
-        points.push({ x: mx, y: my, t: performance.now() });
-        if (points.length > ETCH_MAX_POINTS) points.shift();
-      }
     }
     function onLeave() {
       active = false;
@@ -139,38 +119,7 @@ export default function EtchCursor() {
     }
 
     let raf = 0;
-    function frame(now) {
-      // Drop dead points before drawing so the array stays bounded.
-      while (points.length && now - points[0].t > ETCH_LIFETIME) {
-        points.shift();
-      }
-
-      // ---- Etch canvas (substrate plane) ----
-      etchCtx.setTransform(1, 0, 0, 1, 0, 0);
-      etchCtx.clearRect(0, 0, etchCanvas.width, etchCanvas.height);
-      etchCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      if (animated && points.length > 1) {
-        etchCtx.lineCap = 'round';
-        etchCtx.lineJoin = 'round';
-        const [r, g, b] = copperRGB;
-        for (let i = 1; i < points.length; i++) {
-          const a = points[i - 1];
-          const c = points[i];
-          const ageA = (now - a.t) / ETCH_LIFETIME;
-          const ageC = (now - c.t) / ETCH_LIFETIME;
-          const age = Math.max(ageA, ageC);
-          const alpha = Math.max(0, (1 - age) * 0.16);
-          if (alpha <= 0) continue;
-          etchCtx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-          etchCtx.lineWidth = 0.9;
-          etchCtx.beginPath();
-          etchCtx.moveTo(a.x, a.y);
-          etchCtx.lineTo(c.x, c.y);
-          etchCtx.stroke();
-        }
-      }
-
+    function frame() {
       // ---- Bead canvas (above content) ----
       beadCtx.setTransform(1, 0, 0, 1, 0, 0);
       beadCtx.clearRect(0, 0, beadCanvas.width, beadCanvas.height);
@@ -234,18 +183,11 @@ export default function EtchCursor() {
   if (level === 'off') return null;
 
   return (
-    <>
-      <canvas
-        ref={etchCanvasRef}
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-[1]"
-      />
-      <canvas
-        ref={beadCanvasRef}
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-[70]"
-      />
-    </>
+    <canvas
+      ref={beadCanvasRef}
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 z-[70]"
+    />
   );
 }
 

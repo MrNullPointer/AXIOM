@@ -2,6 +2,15 @@
 // Each entry's `floor` describes its rectangle on a 12×8 grid (col, row, w, h)
 // so the SVG floorplan can be data-driven and scale to thousands of concepts
 // later (concepts get sub-blocks inside their parent domain).
+//
+// `height` is the building extrusion height in pixels for the atlas die
+// hero — it makes the floorplan read as a physical city skyline rather
+// than a flat map. Values are tied to what the block *is* in real silicon:
+//   • Memory   — tallest, HBM stacks literally rise off the die
+//   • Microarchitecture / Accelerators — dense compute logic, pile high
+//   • Coherence / Security / OS / ISA — control plane, mid-rise
+//   • Power / Tooling  — thin/perimeter, low-rise
+//   • Interconnect     — NoC = roads/streets, the trench between blocks
 
 export const DOMAINS = [
   {
@@ -10,6 +19,7 @@ export const DOMAINS = [
     full: 'Instruction Set Architecture',
     blurb: 'The contract between hardware and software.',
     floor: { col: 0, row: 0, w: 4, h: 3 },
+    height: 50,
     accent: 'amber',
   },
   {
@@ -18,6 +28,7 @@ export const DOMAINS = [
     full: 'Pipelines, predictors, schedulers',
     blurb: 'How a core actually executes the contract.',
     floor: { col: 4, row: 0, w: 5, h: 3 },
+    height: 78,
     accent: 'cyan',
   },
   {
@@ -26,6 +37,7 @@ export const DOMAINS = [
     full: 'Caches, TLB, virtual memory, DRAM',
     blurb: 'The pyramid that keeps the core fed.',
     floor: { col: 9, row: 0, w: 3, h: 3 },
+    height: 92,
     accent: 'mint',
   },
   {
@@ -34,6 +46,7 @@ export const DOMAINS = [
     full: 'Consistency, atomics, fences',
     blurb: 'What other cores can observe — and when.',
     floor: { col: 0, row: 3, w: 3, h: 2 },
+    height: 58,
     accent: 'violet',
   },
   {
@@ -42,6 +55,7 @@ export const DOMAINS = [
     full: 'Buses, NoC, chiplets, fabrics',
     blurb: 'How parts of the chip talk to each other.',
     floor: { col: 3, row: 3, w: 3, h: 2 },
+    height: 18,
     accent: 'blue',
   },
   {
@@ -50,6 +64,7 @@ export const DOMAINS = [
     full: 'Privilege, traps, scheduling, MMU',
     blurb: 'Where software meets the metal.',
     floor: { col: 6, row: 3, w: 3, h: 2 },
+    height: 42,
     accent: 'cyan',
   },
   {
@@ -58,6 +73,7 @@ export const DOMAINS = [
     full: 'Side channels, isolation, attestation',
     blurb: 'What the architecture must — and must not — leak.',
     floor: { col: 9, row: 3, w: 3, h: 2 },
+    height: 54,
     accent: 'rose',
   },
   {
@@ -66,6 +82,7 @@ export const DOMAINS = [
     full: 'DVFS, clock gating, thermals',
     blurb: 'Joules per instruction is the new ceiling.',
     floor: { col: 0, row: 5, w: 4, h: 3 },
+    height: 26,
     accent: 'amber',
   },
   {
@@ -74,6 +91,7 @@ export const DOMAINS = [
     full: 'GPUs, NPUs, DSPs, custom silicon',
     blurb: 'When the general-purpose pipeline isn’t enough.',
     floor: { col: 4, row: 5, w: 5, h: 3 },
+    height: 70,
     accent: 'violet',
   },
   {
@@ -82,6 +100,7 @@ export const DOMAINS = [
     full: 'Compilers, simulators, profilers, ISA sim',
     blurb: 'How architecture is designed and measured.',
     floor: { col: 9, row: 5, w: 3, h: 3 },
+    height: 32,
     accent: 'mint',
   },
 ];
