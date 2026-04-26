@@ -162,6 +162,307 @@ body {
 }
 
 /* ---------------------------------------------------------------- *
+ * Etched headline — homepage hero.
+ *
+ * Stack: dim "unetched" base + wiped-in foreground + a copper beam
+ * tracking the wipe edge. After the wipe completes, italicised
+ * words host a persistent copper highlight that travels along their
+ * letterforms like a signal through a trace.
+ *
+ * Tuning (in case future-you wants to retune the cadence):
+ *   • etch-wipe-in:    1500ms reveal, starts at 200ms
+ *   • etch-beam-move:  matches the wipe; fades in then out
+ *   • etch-pulse:      7s cycle, ~35% sweep / ~65% rest
+ *   • Italic 1 fires at 1.9s; italic 2 at 5.4s — anti-metronome.
+ * ---------------------------------------------------------------- */
+.etch-headline {
+  position: relative;
+  display: inline-block;
+}
+
+.etch-headline .etch-base,
+.etch-headline .etch-wipe {
+  display: block;
+}
+
+/* Position the wipe layer exactly on top of the base layer so glyphs
+   align. The base layer determines the box; the wipe is absolute. */
+.etch-headline .etch-base {
+  opacity: 0.10;
+  filter: blur(0.6px);
+}
+
+.etch-headline .etch-wipe {
+  position: absolute;
+  inset: 0;
+  color: var(--ink);
+  /* Clip-path here also caps the painted area to the layer's box,
+     which would crop Fraunces' italic overhang on trailing letters
+     (the "s" in electrons, the "n" in execution). Negative end-state
+     insets push the clip 0.6em past the right edge so overhangs
+     render. The 0.4em / 0.2em vertical insets give similar slack to
+     ascender flourishes and descenders. calc() form keeps unit
+     types consistent so the animation interpolates cleanly. */
+  clip-path: inset(-0.4em calc(100% + 0.6em) -0.2em -0.1em);
+  animation: etch-wipe-in 1500ms cubic-bezier(0.22, 1, 0.36, 1) 200ms both;
+}
+
+@keyframes etch-wipe-in {
+  0%   { clip-path: inset(-0.4em calc(100% + 0.6em) -0.2em -0.1em); }
+  100% { clip-path: inset(-0.4em -0.6em -0.2em -0.1em); }
+}
+
+/* The copper beam — a thin, slightly-blurred vertical bar that rides
+   the wipe edge from left to right. Uses --pad-glow so it's already
+   theme-aware (warm copper in dark, deep copper in light). */
+.etch-headline .etch-beam {
+  position: absolute;
+  top: -4%;
+  bottom: -4%;
+  left: 0;
+  width: 14px;
+  margin-left: -7px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(var(--pad-glow), 0.0) 30%,
+    rgba(var(--pad-glow), 0.95) 50%,
+    rgba(var(--pad-glow), 0.0) 70%,
+    transparent 100%
+  );
+  filter: blur(2.5px);
+  opacity: 0;
+  animation: etch-beam-move 1500ms cubic-bezier(0.22, 1, 0.36, 1) 200ms both;
+}
+
+@keyframes etch-beam-move {
+  0%   { left: 0%;   opacity: 0; }
+  8%   {             opacity: 1; }
+  92%  {             opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+/* Italic pulse — implemented as a third stacked layer (.etch-glow)
+   that sits on top of the wipe. The wipe layer renders its italics
+   as plain ink (no background-clip:text, so no italic-overhang
+   clipping artefacts on the trailing letter). The glow layer renders
+   the same italics in solid copper, then uses a moving CSS mask to
+   reveal only a narrow band — the band sweeps left → right and
+   reads as a signal travelling through the letter strokes. Non-
+   italic content in the glow layer is visibility:hidden so it acts
+   as an invisible spacer, keeping the italic ems aligned with the
+   wipe layer's italics underneath. */
+.etch-headline .etch-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.etch-headline .etch-glow em.serif-italic {
+  visibility: visible;
+  color: rgba(var(--pad-glow), 1);
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 46%,
+    black 50%,
+    transparent 54%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 46%,
+    black 50%,
+    transparent 54%,
+    transparent 100%
+  );
+  -webkit-mask-size: 300% 100%;
+  mask-size: 300% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: 100% 0;
+  mask-position: 100% 0;
+}
+
+.etch-headline .etch-glow .etch-glow-pulse-1 {
+  animation: etch-glow-pulse 7s linear 1900ms infinite;
+}
+.etch-headline .etch-glow .etch-glow-pulse-2 {
+  animation: etch-glow-pulse 7s linear 5400ms infinite;
+}
+
+/* mask-position 100% → band off-left of visible italic (dormant);
+   mask-position 0%   → band off-right (also dormant);
+   100→0 sweeps the band left → right through the italic glyphs.
+   Linear timing keeps the band moving at constant speed; the
+   previous cubic-bezier ease-in-out caused the band to dwell at the
+   off-screen extremes, making the pulse hard to perceive. */
+@keyframes etch-glow-pulse {
+  0%   { mask-position: 100% 0; -webkit-mask-position: 100% 0; }
+  18%  { mask-position: 100% 0; -webkit-mask-position: 100% 0; }
+  60%  { mask-position: 0% 0;   -webkit-mask-position: 0% 0; }
+  100% { mask-position: 0% 0;   -webkit-mask-position: 0% 0; }
+}
+
+/* ---------------------------------------------------------------- *
+ * Headline clock caret. A small copper bar appears after the
+ * trailing period and pulses at a steady ~0.7Hz rhythm — reads as
+ * the chip's clock, not a generic terminal cursor. The bar glows
+ * brightest mid-cycle, dims (but never fully extinguishes) at the
+ * edges. Sits inside .etch-wipe so the etch-in reveal materialises
+ * the caret along with the rest of the headline.
+ * ---------------------------------------------------------------- */
+.etch-caret {
+  display: inline-block;
+  width: 0.08em;
+  height: 0.62em;
+  margin-left: 0.08em;
+  vertical-align: -0.06em;
+  background: rgba(var(--pad-glow), 1);
+  border-radius: 1px;
+  animation: etch-caret-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes etch-caret-pulse {
+  0%, 100% {
+    opacity: 0.28;
+    box-shadow: 0 0 0 rgba(var(--pad-glow), 0);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 16px rgba(var(--pad-glow), 0.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .etch-caret { animation: none; opacity: 0.6; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .etch-headline .etch-base { opacity: 1; filter: none; }
+  .etch-headline .etch-wipe { display: none; }
+  .etch-headline .etch-beam { display: none; }
+}
+
+/* ---------------------------------------------------------------- *
+ * Atlas die — coordinated etch-in across the floorplan.
+ *
+ *   • Each block's front label wipes in via clip-path. Per-block
+ *     animation-delay is set inline from the block's column position
+ *     so the reveal sweeps left → right across the die.
+ *   • A single soft copper beam crosses the whole die, tracking the
+ *     wipe so the floorplan reads as one chip being lit by a moving
+ *     lithography pass — not ten independent reveals.
+ *
+ * Once the wipe completes the clip-path is a no-op (inset 0 0 0 0),
+ * so the FlipBlockCard's hover flip and tilt parallax run normally.
+ * ---------------------------------------------------------------- */
+.atlas-block-wipe {
+  clip-path: inset(0 100% 0 0);
+  animation: atlas-block-wipe-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes atlas-block-wipe-in {
+  0%   { clip-path: inset(0 100% 0 0); }
+  100% { clip-path: inset(0 0 0 0); }
+}
+
+.atlas-die-beam {
+  position: absolute;
+  top: -2%;
+  bottom: -2%;
+  left: 0;
+  width: 80px;
+  margin-left: -40px;
+  pointer-events: none;
+  z-index: 4;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(var(--pad-glow), 0.0) 30%,
+    rgba(var(--pad-glow), 0.55) 50%,
+    rgba(var(--pad-glow), 0.0) 70%,
+    transparent 100%
+  );
+  filter: blur(12px);
+  opacity: 0;
+  animation: atlas-die-beam-move 2600ms cubic-bezier(0.22, 1, 0.36, 1) 200ms both;
+}
+
+@keyframes atlas-die-beam-move {
+  0%   { left: -4%;   opacity: 0; }
+  10%  {              opacity: 1; }
+  88%  {              opacity: 1; }
+  100% { left: 104%;  opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atlas-block-wipe {
+    animation: none;
+    clip-path: none;
+  }
+  .atlas-die-beam { display: none; }
+}
+
+/* ---------------------------------------------------------------- *
+ * Atlas block labels — persistent signal pulse.
+ *
+ * Each of the 10 block labels hosts a copper highlight that travels
+ * across the glyphs every 14s. Per-block animation-delay (set inline
+ * from DOMAINS.indexOf) is staggered by 1.4s, so at any moment one
+ * or two blocks are mid-sweep — the floorplan reads as live signal
+ * traffic visiting different functional units, not a metronome.
+ *
+ * Labels are non-italic Fraunces, so background-clip:text is safe
+ * (no italic-overhang clipping like the headline italics had).
+ * ---------------------------------------------------------------- */
+.atlas-label-pulse {
+  /* Wider band (42–58 vs the headline's 46–54) and a brighter peak so
+     the pulse reads against the busy silicon background underneath. */
+  background-image: linear-gradient(
+    90deg,
+    var(--ink) 0%,
+    var(--ink) 42%,
+    rgba(var(--pad-glow), 0.85) 47%,
+    rgba(var(--pad-glow), 1) 50%,
+    rgba(var(--pad-glow), 0.85) 53%,
+    var(--ink) 58%,
+    var(--ink) 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: atlas-label-pulse 14s linear infinite;
+}
+
+/* Linear timing + a wider active window (8 → 38% of cycle, 4.2s of
+   visible sweep) so the band moves at constant speed and is
+   perceptible. Previous cubic-bezier dwelled at the off-screen
+   extremes, making most blocks appear static. */
+@keyframes atlas-label-pulse {
+  0%   { background-position: 100% 0; }
+  8%   { background-position: 100% 0; }
+  38%  { background-position: 0% 0; }
+  100% { background-position: 0% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atlas-label-pulse {
+    animation: none;
+    background-image: none;
+    -webkit-text-fill-color: var(--ink);
+    color: var(--ink);
+  }
+}
+
+/* ---------------------------------------------------------------- *
  * Custom cursor. EtchCursor adds .cursor-hidden to <body> when it
  * mounts so the native cursor disappears. Removed automatically when
  * the user picks motion: off.

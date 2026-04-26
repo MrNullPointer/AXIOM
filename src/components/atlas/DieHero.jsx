@@ -432,6 +432,15 @@ export default function DieHero({
           </div>
         ) : null}
 
+        {/* Lithography sweep — a soft copper beam crosses the die left
+            to right on first paint, tracking the per-block wipe so the
+            ten labels read as one chip being lit, not ten independent
+            reveals. Sits between the cards and the specular layer so
+            it brightens labels but doesn't dominate the glass sheen. */}
+        {!compact ? (
+          <span className="atlas-die-beam" aria-hidden="true" />
+        ) : null}
+
         {/* Specular highlight — moves opposite to tilt, like a fixed light
             source reflecting off glass. Hidden in compact mode. */}
         {!compact ? (
@@ -454,13 +463,24 @@ function FlipBlockCard({ domain, isFlipped, onHover }) {
   const { col, row, w, h } = domain.floor;
   const concepts = conceptsByDomain(domain.id);
   const accent = ACCENT_VAR[domain.accent] || 'var(--accent-1)';
-  const indexNum = String(DOMAINS.indexOf(domain) + 1).padStart(2, '0');
   // Front display label scales with block width — bumped so titles feel
   // proportional to the tile, not lost in it. Same scale curve on every
   // breakpoint so the desktop and mobile tile share visual weight.
   const labelSize = w >= 5 ? '46px' : w >= 4 ? '38px' : w >= 3 ? '30px' : '26px';
   // Back description bumps in step with the front label.
   const descSize = w >= 5 ? '16px' : w >= 4 ? '15px' : '14px';
+  // Wipe-in delay tracks the block's left edge, so as the die-wide
+  // copper beam (CSS .atlas-die-beam) sweeps left → right, each block
+  // reveals just as the beam crosses it. Beam spans 2600ms with a
+  // 200ms initial delay; col is 0–11 in a 12-col grid.
+  const wipeDelayMs = 200 + (col / 12) * 1900;
+  // Persistent label pulse — staggered per block so the 10 labels
+  // don't pulse in unison. 14s cycle with 1.4s offset between blocks
+  // distributes the signal traffic evenly: at any moment ~1 block
+  // is mid-sweep. Phase is offset to start *after* the wipe finishes
+  // (~3s) so the load-in reveal reads cleanly first.
+  const blockIndex = DOMAINS.indexOf(domain);
+  const labelPulseDelayS = 4 + blockIndex * 1.4;
 
   return (
     <div
@@ -492,9 +512,11 @@ function FlipBlockCard({ domain, isFlipped, onHover }) {
             transformStyle: 'preserve-3d',
           }}
         >
-          {/* FRONT — transparent so the silicon canvas shows through. */}
+          {/* FRONT — transparent so the silicon canvas shows through.
+              .atlas-block-wipe: clip-path reveal staggered by column
+              so the ten blocks light up in sequence with the beam. */}
           <div
-            className="absolute inset-0 rounded-md"
+            className="absolute inset-0 rounded-md atlas-block-wipe"
             style={{
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
@@ -502,38 +524,34 @@ function FlipBlockCard({ domain, isFlipped, onHover }) {
               padding: '14px',
               boxSizing: 'border-box',
               background: 'transparent',
+              animationDelay: `${wipeDelayMs}ms`,
             }}
           >
-            <div className="flex h-full flex-col">
+            {/* Title centered in the full padded area — reads like
+                a die-shot annotation labelling the functional region.
+                LIVE count pinned to the bottom centre as a small tag. */}
+            <div className="flex h-full items-center justify-center">
               <div
+                className="display atlas-label-pulse leading-none text-center"
                 style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: '11px',
-                  letterSpacing: '0.22em',
-                  textTransform: 'uppercase',
-                  color: 'var(--ink-faint)',
+                  fontSize: labelSize,
+                  animationDelay: `${labelPulseDelayS}s`,
                 }}
-              >
-                {indexNum} · block
-              </div>
-              <div
-                className="display mt-1.5 leading-none"
-                style={{ fontSize: labelSize, color: 'var(--ink)' }}
               >
                 {domain.label}
               </div>
-              <div
-                className="mt-auto"
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: '11px',
-                  letterSpacing: '0.18em',
-                  textTransform: 'uppercase',
-                  color: 'var(--ink-faint)',
-                }}
-              >
-                {concepts.length} live
-              </div>
+            </div>
+            <div
+              className="absolute bottom-3.5 left-0 right-0 text-center"
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '11px',
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color: 'var(--ink-faint)',
+              }}
+            >
+              {concepts.length} live
             </div>
             <CornerTicks color="var(--ink-faint)" />
           </div>
@@ -565,7 +583,7 @@ function FlipBlockCard({ domain, isFlipped, onHover }) {
                   color: accent,
                 }}
               >
-                {indexNum} · {domain.label}
+                {domain.label}
               </div>
               <p
                 className="mt-2.5"
