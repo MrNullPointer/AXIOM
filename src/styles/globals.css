@@ -160,3 +160,49 @@ body {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ---------------------------------------------------------------- *
+ * Custom cursor. EtchCursor adds .cursor-hidden to <body> when it
+ * mounts so the native cursor disappears. Removed automatically when
+ * the user picks motion: off.
+ * ---------------------------------------------------------------- */
+body.cursor-hidden,
+body.cursor-hidden *,
+body.cursor-hidden *::before,
+body.cursor-hidden *::after {
+  cursor: none !important;
+}
+
+/* ---------------------------------------------------------------- *
+ * Pad-aware hover. Opt in by adding `pad` class to a button or link.
+ * The element gets a faint copper outline + outer glow on hover and
+ * keyboard-focus, like a chip pad responding to a probe.
+ *
+ * --pad-glow is the RGB triplet used in the rgba() shadow expressions.
+ * It tracks the theme so dark theme uses bright copper and light theme
+ * uses a deeper, warmer copper that reads on the beige background.
+ * ---------------------------------------------------------------- */
+:root[data-theme='dark'] {
+  --pad-glow: 245, 180, 97;
+}
+:root[data-theme='light'] {
+  --pad-glow: 184, 106, 31;
+}
+
+.pad {
+  transition:
+    box-shadow 220ms ease,
+    background 220ms ease;
+}
+.pad:hover,
+.pad:focus-visible {
+  box-shadow:
+    0 0 0 1px rgba(var(--pad-glow), 0.55),
+    0 0 16px rgba(var(--pad-glow), 0.22);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pad {
+    transition: none;
+  }
+}
+

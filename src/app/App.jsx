@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import CircuitFlow from '../components/background/CircuitFlow.jsx';
+import EtchCursor from '../components/cursor/EtchCursor.jsx';
 import Navbar from '../components/shell/Navbar.jsx';
 import SearchPalette from '../components/shell/SearchPalette.jsx';
 import Atlas from '../pages/Atlas.jsx';
@@ -23,6 +24,7 @@ function Layout({ onOpenSearch, density }) {
         intensity={1}
         motion={motionLevel}
       />
+      <EtchCursor />
       <Navbar onOpenSearch={onOpenSearch} />
       <main className="relative z-10">
         <Outlet />
