@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { ACCENT_VAR, getDomain } from '../data/domains.js';
 import { conceptsByDomain } from '../concepts/index.js';
+import { prefetchConceptPage } from '../app/prefetch.js';
 
 export default function DomainPage() {
   const { domain: id } = useParams();
@@ -95,6 +96,8 @@ function ConceptCard({ concept, accent }) {
   return (
     <Link
       to={`/c/${concept.slug}`}
+      onMouseEnter={prefetchConceptPage}
+      onFocus={prefetchConceptPage}
       className="group glass relative flex h-full flex-col overflow-hidden rounded-2xl p-5"
     >
       <span
