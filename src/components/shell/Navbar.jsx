@@ -44,7 +44,7 @@ function IconButton({ onClick, ariaLabel, children }) {
       onClick={onClick}
       aria-label={ariaLabel}
       title={ariaLabel}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors"
+      className="pad inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors"
       style={{
         borderColor: 'var(--rule-strong)',
         color: 'var(--ink)',

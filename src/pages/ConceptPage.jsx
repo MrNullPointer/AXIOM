@@ -272,7 +272,7 @@ export default function ConceptPage() {
                   <Link
                     key={r.meta.slug}
                     to={`/c/${r.meta.slug}`}
-                    className="glass group flex items-center justify-between rounded-xl px-4 py-3"
+                    className="pad glass group flex items-center justify-between rounded-xl px-4 py-3"
                   >
                     <div>
                       <div
@@ -594,7 +594,7 @@ function NextPrev({ current }) {
       {prev ? (
         <Link
           to={`/c/${prev.slug}`}
-          className="glass flex flex-1 items-center gap-3 rounded-xl px-4 py-3"
+          className="pad glass flex flex-1 items-center gap-3 rounded-xl px-4 py-3"
         >
           <ArrowLeft size={14} aria-hidden="true" />
           <div className="text-left">
@@ -610,7 +610,7 @@ function NextPrev({ current }) {
       {next ? (
         <Link
           to={`/c/${next.slug}`}
-          className="glass flex flex-1 items-center justify-end gap-3 rounded-xl px-4 py-3"
+          className="pad glass flex flex-1 items-center justify-end gap-3 rounded-xl px-4 py-3"
         >
           <div className="text-right">
             <div className="marker">next</div>

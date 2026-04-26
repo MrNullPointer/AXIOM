@@ -11,7 +11,7 @@ export default function ThemeToggle() {
       onClick={toggle}
       aria-label={label}
       title={label}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors"
+      className="pad inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors"
       style={{
         borderColor: 'var(--rule-strong)',
         color: 'var(--ink)',
