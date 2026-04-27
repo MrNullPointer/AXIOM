@@ -32,13 +32,15 @@ export function Host({ accent, children }) {
 
 // L — small mono caps label, sits at (x, y). Uppercase + letter-spacing
 // gives it the engineering-readout feel without competing with the viz.
-export function L({ x, y, text, color, anchor = 'middle', em = 0.7, size = 10 }) {
+// `style` is merged in so callers can drive opacity / transform with
+// CSS calc() expressions (used by --sv-t-driven progressive reveals).
+export function L({ x, y, text, color, anchor = 'middle', em = 0.7, size = 10, style }) {
   return (
     <text x={x} y={y} fontSize={size} fontFamily={FONT}
       fill={color} fillOpacity={em}
       textAnchor={anchor}
       letterSpacing="0.18em"
-      style={{ textTransform: 'uppercase' }}>
+      style={{ textTransform: 'uppercase', ...style }}>
       {text}
     </text>
   );

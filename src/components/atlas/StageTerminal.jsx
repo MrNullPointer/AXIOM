@@ -28,7 +28,39 @@ export default function StageTerminal({ script, t, accent }) {
   // — pausing briefly at each newline). Newline weights as 1 char.
   const lineLengths = script.map((line) => line.length);
   const total = lineLengths.reduce((a, b) => a + b, 0) + Math.max(0, script.length - 1);
-  const cut = Math.max(0, Math.min(total, Math.floor(t * total)));
+
+  // Word-boundary snap: typing must never freeze mid-word. We pre-walk
+  // the script once to find every position right AFTER a word ends —
+  // that's the set of "valid resting positions" for the cursor. The
+  // raw cut (proportional to t) then snaps DOWN to the nearest such
+  // position. Effect: as the user scrolls, words appear one at a time
+  // and the cursor always sits at the end of a complete word, never
+  // halfway through one. Symbols like →, ▾, $ count as single-glyph
+  // words, so the prompt and result markers also pop in cleanly.
+  const stops = [0];
+  let walked = 0;
+  script.forEach((line, lineIdx) => {
+    let inWord = false;
+    for (let i = 0; i < line.length; i++) {
+      const isSpace = /\s/.test(line[i]);
+      if (inWord && isSpace) stops.push(walked + i);
+      inWord = !isSpace;
+    }
+    if (inWord) stops.push(walked + line.length);
+    walked += line.length;
+    if (lineIdx < script.length - 1) {
+      walked += 1; // synthetic newline
+      stops.push(walked);
+    }
+  });
+  const idealCut = Math.max(0, Math.min(total, Math.floor(t * total)));
+  let cut = 0;
+  for (let i = stops.length - 1; i >= 0; i--) {
+    if (stops[i] <= idealCut) {
+      cut = stops[i];
+      break;
+    }
+  }
 
   // Compute how many characters of each line are visible, and which
   // line the cursor sits on. Walking the array once keeps this O(n)
