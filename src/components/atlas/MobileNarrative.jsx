@@ -87,8 +87,24 @@ export default function MobileNarrative() {
           <span style={{ color }}>{stage.id}</span>
         </div>
 
-        {/* Viz panel — fixed aspect ratio so phone keyboards don't squish it */}
-        <div style={{ position: 'relative', height: '220px', padding: '8px' }}>
+        {/* Viz panel — aspect-ratio sized so the diagram letterboxes
+            cleanly within the card regardless of phone width. The widest
+            stage SVGs (SramL0, SramL2) use a 7:4 viewBox; everything
+            else is 3:2. We size the panel to 7:4 so wide vizes (RING
+            bus, Coherence L0, SRAM stack) get the full width they need
+            and 3:2 vizes letterbox top/bottom symmetrically.
+            overflow:hidden clips any stray label artifacts that bleed
+            past the viewBox on tiny screens. */}
+        <div
+          style={{
+            position: 'relative',
+            aspectRatio: '7 / 4',
+            minHeight: '200px',
+            maxHeight: '280px',
+            padding: '8px',
+            overflow: 'hidden',
+          }}
+        >
           <StageAnimation stageId={stage.id} subStageIndex={0} accent={color} />
         </div>
 

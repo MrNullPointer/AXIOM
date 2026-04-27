@@ -246,6 +246,7 @@ const Card = forwardRef(function Card({ stage, subStageT, depthIndex, ascending,
                   subStageIndex={depthIndex}
                   subStageT={subStageT}
                   accent={color}
+                  scrub
                 />
               </motion.div>
             </AnimatePresence>
