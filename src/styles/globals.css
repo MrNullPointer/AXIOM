@@ -740,3 +740,116 @@ body.cursor-hidden *::after {
   }
 }
 
+/* ---------------------------------------------------------------- *
+ * Audio control — speaker icon button in the navbar. Clicking it
+ * toggles music on/off; when on, a vertical volume bar drops down
+ * from beneath the button as a glass popover. Keeps the resting
+ * navbar minimal (just an icon) and gives the volume affordance
+ * a clean entrance animation.
+ * ---------------------------------------------------------------- */
+.audio-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  width: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0 10px;
+  border-radius: 18px;
+  border: 1px solid var(--rule-strong);
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  transform: scaleY(0);
+  transform-origin: top center;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 280ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 220ms ease;
+}
+.audio-popover[data-open] {
+  transform: scaleY(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+.audio-popover-pct {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  user-select: none;
+  min-width: 18px;
+  text-align: center;
+}
+.audio-vtrack {
+  position: relative;
+  width: 6px;
+  height: 96px;
+  cursor: pointer;
+  outline: none;
+  border-radius: 999px;
+  touch-action: none;
+}
+.audio-vtrack:focus-visible {
+  box-shadow: 0 0 0 2px rgba(var(--pad-glow), 0.45);
+}
+.audio-vtrack-rail {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.4);
+}
+.audio-vtrack-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: linear-gradient(
+    to top,
+    rgba(var(--pad-glow), 0.95),
+    rgba(var(--pad-glow), 0.55)
+  );
+  box-shadow: 0 0 8px rgba(var(--pad-glow), 0.55);
+  transition: height 90ms ease-out;
+}
+.audio-vtrack-thumb {
+  position: absolute;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: rgb(var(--pad-glow));
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 0 0 2px rgba(var(--pad-glow), 0.5),
+    0 0 12px rgba(var(--pad-glow), 0.7);
+  transition: bottom 90ms ease-out, transform 160ms ease, box-shadow 160ms ease;
+  pointer-events: none;
+}
+.audio-vtrack:hover .audio-vtrack-thumb,
+.audio-vtrack:focus-visible .audio-vtrack-thumb,
+.audio-vtrack:active .audio-vtrack-thumb {
+  transform: scale(1.15);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 0 0 2px rgba(var(--pad-glow), 0.85),
+    0 0 16px rgba(var(--pad-glow), 0.85);
+}
+@media (prefers-reduced-motion: reduce) {
+  .audio-popover {
+    transition: opacity 100ms ease;
+    transform: none;
+  }
+  .audio-vtrack-fill,
+  .audio-vtrack-thumb {
+    transition: none;
+  }
+}
+

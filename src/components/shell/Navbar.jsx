@@ -2,6 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import Wordmark from './Wordmark.jsx';
 import MotionToggle from './MotionToggle.jsx';
+import AudioControl from './AudioControl.jsx';
 import { smoothScrollToTop } from '../../app/scroll.js';
 
 export default function Navbar({ onOpenSearch }) {
@@ -38,6 +39,7 @@ export default function Navbar({ onOpenSearch }) {
             <IconButton onClick={onOpenSearch} ariaLabel="Open search">
               <Search size={15} aria-hidden="true" />
             </IconButton>
+            <AudioControl />
             <MotionToggle />
           </div>
         </nav>
