@@ -808,6 +808,36 @@
 /* ============== FET lit-up state (when active) ============== */
 .sv-fet-lit { filter: drop-shadow(0 0 6px var(--stage-accent, currentColor)); }
 
+/* ============== Scroll-coupled scrub ==================================
+ * When StageAnimation is rendered with scrub=true (the atlas
+ * PluckedStage), the wrapper element gets class .sv-stage-scrub and an
+ * inline CSS variable --sv-t (0..1) reflecting the within-substage
+ * scroll progress. Every CSS animation in the descendant tree is then
+ * paused and pinned to frame (--sv-t * 4s) of a unified 4 s clock — so
+ * scrolling the page advances the visualization instead of letting it
+ * loop independently. On scroll-stop the viz freezes at the current
+ * frame.
+ *
+ * Trade-off: per-element staggers (e.g., the cascade of pipeline-row
+ * latches firing 0.48 s apart) collapse to a single frame in scrub
+ * mode because the !important wins over the per-class
+ * animation-delay. The coupled-to-scroll progression replaces the
+ * cascade as the source of motion, which is the whole point of the
+ * scrub. Animations with non-4 s native durations (DRAM 5.2 s,
+ * coherence/fill 4.8 s, intro 6 s, recap 5.6 s) get re-clocked to 4 s
+ * during scrub — they progress at the same pace as everything else
+ * inside their viz.
+ * ===================================================================== */
+.sv-stage-scrub *,
+.sv-stage-scrub::before,
+.sv-stage-scrub::after {
+  animation-play-state: paused !important;
+  animation-duration: 4s !important;
+  animation-delay: calc(var(--sv-t, 0) * -4s) !important;
+  animation-iteration-count: 1 !important;
+  animation-fill-mode: both !important;
+}
+
 /* Reduced motion — skip all animation */
 @media (prefers-reduced-motion: reduce) {
   .sv-clock-edge, .sv-dff-latch, .sv-token, .sv-token-label,

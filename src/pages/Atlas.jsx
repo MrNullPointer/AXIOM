@@ -6,6 +6,7 @@ import MobileBlocks from '../components/atlas/MobileBlocks.jsx';
 import MobileNarrative from '../components/atlas/MobileNarrative.jsx';
 import StageCallout from '../components/atlas/StageCallout.jsx';
 import PluckedStage from '../components/atlas/PluckedStage.jsx';
+import { prefetchStage, prefetchAll } from '../components/atlas/StageAnimations.jsx';
 import { SCENARIO_STAGES } from '../components/atlas/scenarioStages.js';
 import { useScrollNarrative } from '../components/atlas/useScrollNarrative.js';
 import {
@@ -117,6 +118,31 @@ export default function Atlas() {
     };
   }, []);
 
+  // Lazy-load each stage's viz chunk on scroll proximity. We always
+  // prefetch the active stage's chunk + the next two so the bundle is
+  // ready before scroll reveals it. After the page has been idle for a
+  // moment, prefetch every remaining chunk so back-and-forth scrolling
+  // stays instant. Idempotent — the import() promises are cached.
+  useEffect(() => {
+    if (!inView) return;
+    for (let i = 0; i <= 2; i++) {
+      const id = SCENARIO_STAGES[stageIndex + i]?.id;
+      if (id) prefetchStage(id);
+    }
+  }, [stageIndex, inView]);
+  useEffect(() => {
+    const ric =
+      typeof window !== 'undefined' && window.requestIdleCallback
+        ? window.requestIdleCallback
+        : (cb) => setTimeout(cb, 1500);
+    const cancel =
+      typeof window !== 'undefined' && window.cancelIdleCallback
+        ? window.cancelIdleCallback
+        : clearTimeout;
+    const handle = ric(() => prefetchAll(), { timeout: 4000 });
+    return () => cancel(handle);
+  }, []);
+
   // Card is visible from 1.5% (just after the reveal-zoom finishes at
   // 4%) to the very end. With 9 stages each ~11% wide, intro is 0-11%
   // so we want the card up early. During the rest beat the viz hides
@@ -168,8 +194,8 @@ export default function Atlas() {
             <DieHero hovered={hovered} setHovered={setHovered} />
           </div>
           <div className="md:hidden flex flex-col gap-10">
-            <MobileNarrative />
             <MobileBlocks />
+            <MobileNarrative />
           </div>
         </motion.section>
       </div>
