@@ -1,9 +1,20 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import Wordmark from './Wordmark.jsx';
 import MotionToggle from './MotionToggle.jsx';
+import { smoothScrollToTop } from '../../app/scroll.js';
 
 export default function Navbar({ onOpenSearch }) {
+  const location = useLocation();
+  // Same scroll-to-top as the Wordmark — clicking "Atlas" while on
+  // '/' should glide back to the top. Native smooth-scroll gets
+  // cancelled by framer-motion's layout system, so we use the
+  // manual rAF helper from app/scroll.js.
+  const handleAtlasClick = () => {
+    if (location.pathname === '/') {
+      smoothScrollToTop();
+    }
+  };
   return (
     <header
       className="sticky top-0 z-40"
@@ -17,7 +28,7 @@ export default function Navbar({ onOpenSearch }) {
           <div className="flex items-center gap-4 sm:gap-5">
             <Wordmark />
             <ul className="flex items-center gap-1">
-              <NavItem to="/" end>
+              <NavItem to="/" end onClick={handleAtlasClick}>
                 Atlas
               </NavItem>
               <NavItem to="/index">Index</NavItem>
@@ -54,12 +65,13 @@ function IconButton({ onClick, ariaLabel, children }) {
   );
 }
 
-function NavItem({ to, end, children }) {
+function NavItem({ to, end, children, onClick }) {
   return (
     <li>
       <NavLink
         to={to}
         end={end}
+        onClick={onClick}
         className={({ isActive }) =>
           [
             'rounded-lg px-3 py-1.5 text-sm transition-colors',

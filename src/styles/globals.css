@@ -9,9 +9,13 @@
  * ---------------------------------------------------------------- */
 :root,
 :root[data-theme='dark'] {
-  --bg: #05060a;
-  --bg-soft: #0a0c12;
-  --bg-glass: rgba(8, 10, 16, 0.55);
+  /* --bg lifted from #05060a to #0c0f1a — gives the home page (and any
+     other route where the narrative-dim overlay is at 0) a slightly
+     brighter near-black. The dim overlay (rgba(2,4,10,0.78)) covers it
+     at 78% opacity during stages 1-7, so those stages stay the same. */
+  --bg: #0c0f1a;
+  --bg-soft: #11151f;
+  --bg-glass: rgba(12, 16, 24, 0.55);
   --ink: #ecedf1;
   --ink-soft: #b8bdcb;
   --ink-faint: #6e7488;

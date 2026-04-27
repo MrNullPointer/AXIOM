@@ -19,7 +19,8 @@ import { useEffect, useRef, useState } from 'react';
  * bottom of the viewport — which is exactly when the sticky child stops
  * sticking.
  */
-export function useScrollNarrative(containerRef, totalStages, subStagesPerStage = 1) {
+export function useScrollNarrative(containerRef, totalStages, subStagesPerStage = 1, options = {}) {
+  const { onTick } = options;
   const [state, setState] = useState({
     progress: 0,
     stageIndex: 0,
@@ -30,6 +31,10 @@ export function useScrollNarrative(containerRef, totalStages, subStagesPerStage 
   });
   const rafRef = useRef(0);
   const pendingRef = useRef(false);
+  // Track latest onTick in a ref so we don't restart the rAF loop on
+  // every re-render when the parent passes an inline callback.
+  const onTickRef = useRef(onTick);
+  onTickRef.current = onTick;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -39,25 +44,23 @@ export function useScrollNarrative(containerRef, totalStages, subStagesPerStage 
       pendingRef.current = false;
       const rect = el.getBoundingClientRect();
       const viewportH = window.innerHeight || 1;
-      // Total scrollable distance inside this section (height - viewport).
       const total = Math.max(1, rect.height - viewportH);
-      // How far past the top of the section we've scrolled.
       const scrolled = -rect.top;
       const p = Math.max(0, Math.min(1, scrolled / total));
-      // inView: the section overlaps the viewport at all. Used by the
-      // BG canvas + atlas to know whether scroll-driven state matters.
       const inView = rect.top < viewportH && rect.bottom > 0;
-      // Map progress to stage index + within-stage t.
       const scaled = p * totalStages;
       const stageIndex = Math.min(totalStages - 1, Math.floor(scaled));
       const stageT = Math.max(0, Math.min(1, scaled - stageIndex));
-      // Within-stage substage: each main stage is sub-divided into
-      // subStagesPerStage equal slices. subStageIndex is the active
-      // depth level (0 = main, 1 = first zoom, etc.); subStageT is
-      // 0..1 within that depth.
       const subScaled = stageT * subStagesPerStage;
       const subStageIndex = Math.min(subStagesPerStage - 1, Math.floor(subScaled));
       const subStageT = Math.max(0, Math.min(1, subScaled - subStageIndex));
+      // High-frequency tick — runs every animation frame regardless of
+      // whether React state changed. The Atlas page uses this to write
+      // BG zoom + dim CSS variables without paying the cost of a
+      // useEffect re-run per frame.
+      if (onTickRef.current) {
+        onTickRef.current({ progress: p, stageIndex, stageT, subStageIndex, subStageT, inView });
+      }
       setState((prev) => {
         if (
           prev.progress === p &&

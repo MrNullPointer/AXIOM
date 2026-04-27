@@ -30,20 +30,68 @@ const ease = [0.22, 1, 0.36, 1];
 export default function Atlas() {
   const [hovered, setHovered] = useState(null);
   const narrativeRef = useRef(null);
-  // 5 substages per stage so the user descends AND resurfaces:
+  // 6 substages per stage so the user descends, resurfaces, AND gets a
+  // breath where the BG die-shot fully reveals before the next pluck:
   //   substage 0 → L0 BLOCK         (entering)
   //   substage 1 → L1 CELL          (going deeper)
   //   substage 2 → L2 ATOMIC        (deepest physics)
   //   substage 3 → L1 CELL          (building back up)
-  //   substage 4 → L0 BLOCK         (back to context, then next stage)
-  // The depth mapping happens inside PluckedStage; here we just request
-  // 5 sub-divisions so scroll math + breadcrumb pip count line up.
-  const SUB_STAGES = 5;
+  //   substage 4 → L0 BLOCK         (back to context)
+  //   substage 5 → REST             (card fades, BG visible, hand-off)
+  // The depth mapping + rest detection live inside PluckedStage; here
+  // we just request 6 sub-divisions so scroll math lines up.
+  const SUB_STAGES = 6;
+  // Per-frame writer — runs inside the rAF loop so BG zoom + dim
+  // CSS vars update at scroll speed without re-running a React effect
+  // 60 times a second. Reads no React state; everything it needs comes
+  // from the tick payload.
+  const onScrollTick = ({ progress: p, inView: iv, subStageIndex: si, subStageT: st }) => {
+    if (!iv) {
+      document.body.style.removeProperty('--bg-zoom');
+      document.body.style.removeProperty('--narrative-dim');
+      return;
+    }
+    const revealT = Math.min(1, p / 0.04);
+    const eased = 1 - Math.pow(1 - revealT, 3);
+    const zoom = 1 + 0.16 * eased;
+    let dim = eased;
+
+    // Recap (last stage): fade the dim overlay back to 0 so the recap
+    // reads at the same brightness as the home page (y=0). Intermediate
+    // stages keep their full dim. The fade happens over the first ~half
+    // of the recap stage so the user has time to register the lift.
+    const totalStages = SCENARIO_STAGES.length;
+    const recapStartProgress = (totalStages - 1) / totalStages;
+    if (p > recapStartProgress) {
+      const recapT = (p - recapStartProgress) / (1 / totalStages);
+      const fadeT = Math.min(1, recapT * 2); // hit 0 at the recap midpoint
+      dim = Math.max(0, dim * (1 - fadeT));
+    }
+
+    // Rest beat between stages (existing): briefly let the BG breathe
+    // before the next pluck.
+    const stageIdx = Math.floor(p * totalStages);
+    const isLast = stageIdx === totalStages - 1;
+    const isRest = si === SUB_STAGES - 1 && !isLast;
+    if (isRest) {
+      const restEase = Math.sin(st * Math.PI);
+      dim = dim * (1 - 0.7 * restEase);
+    }
+
+    document.body.style.setProperty('--bg-zoom', zoom.toFixed(4));
+    document.body.style.setProperty('--narrative-dim', dim.toFixed(4));
+  };
   const { progress, stageIndex, inView, subStageIndex, subStageT } =
-    useScrollNarrative(narrativeRef, SCENARIO_STAGES.length, SUB_STAGES);
+    useScrollNarrative(narrativeRef, SCENARIO_STAGES.length, SUB_STAGES, { onTick: onScrollTick });
   const setNarrativeStage = useSetNarrativeStage();
   const setNarrativeActive = useSetNarrativeActive();
   const stage = SCENARIO_STAGES[stageIndex];
+  // The last 1/6 of every stage is the "rest" beat. The plucked card
+  // bows out so the BG die-shot is briefly fully visible before the next
+  // stage's pluck begins. Disabled on the final stage so the user
+  // doesn't see an empty card at the very end of the narrative.
+  const isLastStage = stageIndex === SCENARIO_STAGES.length - 1;
+  const isRestBeat = subStageIndex === SUB_STAGES - 1 && !isLastStage;
 
   useEffect(() => {
     setNarrativeStage(null);
@@ -58,34 +106,24 @@ export default function Atlas() {
     return () => setNarrativeActive(false);
   }, [inView, setNarrativeActive]);
 
-  // BG zoom-in reveal — chip comes to foreground over the first 12% of
-  // scroll. Simultaneously, --narrative-dim ramps up so the BG fades to
-  // a deep wash and the plucked card dominates the viewport.
+  // BG zoom + dim are written by useScrollNarrative's onTick callback
+  // above — keeps the per-frame style writes out of React's effect
+  // queue (was re-running ~60×/s during scroll). Only need a single
+  // cleanup to clear the vars on unmount.
   useEffect(() => {
-    if (!inView) {
-      document.body.style.removeProperty('--bg-zoom');
-      document.body.style.removeProperty('--narrative-dim');
-      return undefined;
-    }
-    const revealT = Math.min(1, progress / 0.12);
-    const eased = 1 - Math.pow(1 - revealT, 3);
-    const zoom = 1 + 0.16 * eased;
-    // Dim ramps to 1 over the same window — so the BG dims as the chip
-    // zooms in, focal pull onto the plucked card.
-    document.body.style.setProperty('--bg-zoom', zoom.toFixed(4));
-    document.body.style.setProperty('--narrative-dim', eased.toFixed(4));
     return () => {
       document.body.style.removeProperty('--bg-zoom');
       document.body.style.removeProperty('--narrative-dim');
     };
-  }, [progress, inView]);
+  }, []);
 
-  // Card is visible from 4% (just after the reveal-zoom kicks in) to
-  // the very end of the narrative. Earlier threshold means stage 0
-  // (Pipeline) — which only spans 0-14% of total scroll — is actually
-  // visible at all three of its substages.
-  const calloutVisible = inView && progress > 0.04 && progress < 0.99;
-  const stageVizVisible = calloutVisible;
+  // Card is visible from 1.5% (just after the reveal-zoom finishes at
+  // 4%) to the very end. With 9 stages each ~11% wide, intro is 0-11%
+  // so we want the card up early. During the rest beat the viz hides
+  // so the BG can breathe between plucks; the callout stays so the
+  // breadcrumb doesn't blink.
+  const calloutVisible = inView && progress > 0.015 && progress < 0.99;
+  const stageVizVisible = calloutVisible && !isRestBeat;
 
   return (
     <>
@@ -140,7 +178,7 @@ export default function Atlas() {
         ref={narrativeRef}
         aria-label="Cache-miss narrative"
         className="relative hidden md:block"
-        style={{ height: '700vh' }}
+        style={{ height: '650vh' }}
       >
         {/* Sticky spacer keeps the sticky-positioning context alive but
             doesn't render visible content; the plucked card is rendered
