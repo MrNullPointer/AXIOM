@@ -27,7 +27,7 @@ function FillL0({ accent }) {
     <Host accent={accent}>
       <svg viewBox="0 0 600 400" className="sv-svg" preserveAspectRatio="xMidYMid meet">
         <L x={300} y={26}
-          text="Cacheline Cascade · L3 → L2 → L1 · 64-byte line at every level"
+          text="Cacheline Cascade · L3 → L2 → L1 · inclusive fill"
           color={accent} em={0.9} size={11} />
 
         {levels.map((lvl, levelIdx) => (
@@ -102,7 +102,7 @@ function FillL0({ accent }) {
         </g>
 
         <L x={300} y={388}
-          text="line installed at every level · next access hits L1"
+          text="inclusive · line lands in L3 + L2 + L1 · next access hits L1"
           color={accent} em={0.6} size={9} />
       </svg>
     </Host>

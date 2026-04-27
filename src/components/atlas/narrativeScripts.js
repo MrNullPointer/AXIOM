@@ -217,7 +217,7 @@ export const NARRATIVE_SCRIPTS = {
       '→ MISS · escalate to memctrl',
       '  RAS · activate row',
       '  CAS · select column',
-      '→ 40 + 200 cycles · the cliff',
+      '→ ~240 core cycles round-trip · the cliff',
       '  why so slow? open the array ▾',
     ],
 
@@ -251,8 +251,9 @@ export const NARRATIVE_SCRIPTS = {
     [
       '$ assemble bank ▴',
       '  16 384 rows · 8 192 cols · activated as one',
-      '  RAS · row dump · 40 cyc',
-      '  CAS · column read · 200 cyc',
+      '  RAS · row activate',
+      '  CAS · column read',
+      '  total round-trip · ~240 core cyc',
       '  refresh row / 64 ms · always · forever',
       '→ line on the bus · cascading back ▾',
     ],
@@ -328,7 +329,7 @@ export const NARRATIVE_SCRIPTS = {
       '  L3 ← memory · install',
       '  L2 ← L3      · install + LRU evict',
       '  L1 ← L2      · install + LRU evict',
-      '→ 15 cycles · line installed at every level',
+      '→ 15 cyc · inclusive fill · line in L3 + L2 + L1',
       '  zoom one level — how does a byte land? ▾',
     ],
 

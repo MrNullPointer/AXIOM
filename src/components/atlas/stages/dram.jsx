@@ -15,8 +15,9 @@ import {
  * sense-amps; then CAS picks the column to read out. RAS itself is
  * destructive — the row needs to be written back at the end.
  *
- * Real-life cost: ~40 cycles to activate, ~200 to read out (CAS) —
- * which is the cliff in the "287 cycle" cache miss.
+ * Real-life cost: at typical client clocks the full memctrl → DDR
+ * round-trip (queueing, command, activate, CAS, burst, return) lands
+ * around ~240 core cycles — that's the cliff in the "287 cycle" miss.
  */
 function DramL0({ accent }) {
   const ctrlX = 40,  ctrlY = 80,  ctrlW = 130,  ctrlH = 70;
@@ -113,7 +114,7 @@ function DramL0({ accent }) {
 
         {/* Cycle-cost annotation */}
         <L x={300} y={388}
-          text="RAS ≈ 40 cyc · CAS ≈ 200 cyc · this is the DRAM cliff"
+          text="memctrl + DDR round-trip ≈ 240 core cycles · this is the DRAM cliff"
           color={accent} em={0.55} size={9} />
       </svg>
     </Host>
