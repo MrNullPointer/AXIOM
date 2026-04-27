@@ -3,6 +3,8 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import StageAnimation from './StageAnimations.jsx';
 import SideBlockThumbnail from './SideBlockThumbnail.jsx';
+import StageTerminal from './StageTerminal.jsx';
+import { getScript } from './narrativeScripts.js';
 import { STAGE_SOURCE_RECTS, STAGE_COLORS } from './scenarioStages.js';
 import { smoothScrollToTop } from '../../app/scroll.js';
 
@@ -64,13 +66,15 @@ export default function PluckedStage({ stage, subStageIndex = 0, subStageT = 0, 
           ascending={ascending}
           flat={flat}
           reduce={reduce}
+          script={getScript(stage.id, subStageIndex)}
         />
       ) : null}
     </AnimatePresence>
   );
 }
 
-const Card = forwardRef(function Card({ stage, subStageT, depthIndex, ascending, flat, reduce }, ref) {
+const Card = forwardRef(function Card({ stage, subStageT, depthIndex, ascending, flat, reduce, script }, ref) {
+  const hasTerminal = !!script;
   const src = STAGE_SOURCE_RECTS[stage.id] || { x: 0.5, y: 0.5, w: 0.05, h: 0.05 };
   const color = STAGE_COLORS[stage.id] || 'rgb(var(--pad-glow))';
 
@@ -189,13 +193,20 @@ const Card = forwardRef(function Card({ stage, subStageT, depthIndex, ascending,
           <DepthBreadcrumb depthIndex={depthIndex} ascending={ascending} color={color} />
         )}
 
-        {/* Two-column body. Below the layout breakpoint (~1280px) it
-            collapses to a single column with the side-panel acting as a
-            compact horizontal strip — see plucked-card.css. flat
-            stages (intro/recap) drop the side panel and let the
-            visualization fill the full card width. */}
+        {/* Body grid: side panel · viz on the top row, narration
+            terminal spanning the bottom row. Below 1280 px the side
+            panel collapses to a horizontal strip — see
+            plucked-card.css. Flat stages (intro/recap) drop the side
+            panel and let the visualization fill full width. The
+            terminal row only renders when the current substage has a
+            script (`hasTerminal`); otherwise the body collapses back
+            to a single row so the viz keeps its full vertical budget. */}
         <div
-          className={`atlas-plucked-body${flat ? ' atlas-plucked-body-flat' : ''}`}
+          className={
+            'atlas-plucked-body'
+            + (flat ? ' atlas-plucked-body-flat' : '')
+            + (hasTerminal ? ' atlas-plucked-body-with-terminal' : '')
+          }
         >
           {!flat && (
             <div className="atlas-plucked-side" style={{ borderColor: `${color}22` }}>
@@ -206,7 +217,7 @@ const Card = forwardRef(function Card({ stage, subStageT, depthIndex, ascending,
             </div>
           )}
 
-          <div style={{ position: 'relative', minHeight: 0 }}>
+          <div className="atlas-plucked-viz" style={{ position: 'relative', minHeight: 0 }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${stage.id}-${depthIndex}`}
@@ -251,6 +262,12 @@ const Card = forwardRef(function Card({ stage, subStageT, depthIndex, ascending,
               </motion.div>
             </AnimatePresence>
           </div>
+
+          {hasTerminal && (
+            <div className="atlas-plucked-terminal-slot">
+              <StageTerminal script={script} t={subStageT} accent={color} />
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
