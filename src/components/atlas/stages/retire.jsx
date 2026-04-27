@@ -148,11 +148,14 @@ function RetireL0({ accent }) {
 }
 
 /**
- * RetireL1 — one architectural register's row of 16 bit cells.
+ * RetireL1 — the low 16-bit slice of x1's storage row.
  *
- * Same topology as a 6T SRAM cell row, drawn at fewer bits since the
- * teaching is "this is where x1 lives". WL[1] selects this row; the
- * 16 access transistors connect each storage cell to its bit-line.
+ * x1 is 64 bits wide, but rendering all 64 columns would crush the
+ * detail. We draw the low 16 bits (0xBEEF — the bottom of 0xDEADBEEF)
+ * as a stand-in: same topology as a 6T SRAM cell row repeated four
+ * times across the full register. WL[1] selects this row; the 16
+ * access transistors connect each storage cell to its bit-line, and
+ * in the real device 64 of these fire in parallel.
  */
 function RetireL1({ accent }) {
   const wlY     = 70;
@@ -167,7 +170,7 @@ function RetireL1({ accent }) {
     <Host accent={accent}>
       <svg viewBox="0 0 600 400" className="sv-svg" preserveAspectRatio="xMidYMid meet">
         <L x={300} y={26}
-          text="One Register Row · 16 Bit Cells · WL[1] Selects x1"
+          text="x1 · Low 16 Bits Shown · 4 Such Slices Make 64-bit Register"
           color={accent} em={0.9} size={11} />
 
         {/* WL[1] */}
@@ -221,7 +224,7 @@ function RetireL1({ accent }) {
         })}
 
         <L x={300} y={386}
-          text="x1 ← 0xBEEF · 16 bit-lines write in parallel"
+          text="x1[15:0] ← 0xBEEF · all 64 bit-lines write in parallel"
           color={accent} em={0.6} size={9} />
       </svg>
     </Host>

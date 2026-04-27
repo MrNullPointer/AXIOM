@@ -15,7 +15,7 @@ import {
  * Each stage is a column with a big mono code (IF/ID/...), a name, a
  * one-line hint about what happens there, and a pipeline-register
  * latch glyph showing the boundary buffer between stages. A single
- * instruction token "ld x1, [x2]" glides across all five stages once
+ * instruction token "lb x1, 0(x2)" glides across all five stages once
  * per cycle, with proper opacity envelope so the loop has no seam.
  *
  * The teaching: pipelining doesn't make one instruction faster, it
@@ -124,7 +124,7 @@ function PipelineL0({ accent }) {
               values="0;1;1;1;1;1;0"
               keyTimes="0;0.08;0.24;0.42;0.6;0.78;1"
               dur="6s" repeatCount="indefinite" />
-            ld x1, [x2]
+            lb x1, 0(x2)
           </text>
         </g>
 

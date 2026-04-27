@@ -34,7 +34,7 @@ export const NARRATIVE_SCRIPTS = {
   // =====================================================================
   intro: [
     [
-      '$ trace ld x1, [x2]',
+      '$ trace lb x1, 0(x2)',
       '  scenario: cold line · no cache hit',
       '  best path  · L1 hit       →   4 cyc',
       '  slow path  · all miss     → 287 cyc',
@@ -53,7 +53,7 @@ export const NARRATIVE_SCRIPTS = {
   // =====================================================================
   issue: [
     [
-      '$ pipe ld x1, [x2] --trace',
+      '$ pipe lb x1, 0(x2) --trace',
       '  IF → ID → RR → IS → EX',
       '  one stage per clock edge',
       '→ scheduler dispatches load · 1 cyc',
@@ -380,7 +380,7 @@ export const NARRATIVE_SCRIPTS = {
   retire: [
     [
       '$ rob.head --status',
-      '  inst : ld x1, [x2]',
+      '  inst : lb x1, 0(x2)',
       '  data : 0xDEADBEEF',
       '  faults: none',
       '→ retire · architectural state advances',
@@ -389,10 +389,10 @@ export const NARRATIVE_SCRIPTS = {
 
     [
       '$ inspect regfile.x1 --row',
-      '  16 bit cells per register',
+      '  64 bit cells per register · 16 shown',
       '  · WL[1] selects the x1 row',
-      '  · 16 access transistors open',
-      '  · 16 bitlines drive new data',
+      '  · 64 access transistors open',
+      '  · 64 bitlines drive new data',
       '  · cells flip · x1 = 0xDEADBEEF',
       '  what drives one bitline? ▾',
     ],

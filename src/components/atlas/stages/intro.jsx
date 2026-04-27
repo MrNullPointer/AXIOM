@@ -94,7 +94,7 @@ function IntroOverview({ accent }) {
         >
           <rect width="160" height="34" rx="3" fill={accent} fillOpacity="0.06"
             stroke={accent} strokeOpacity="0.55" strokeWidth="0.9" />
-          <L x={80} y={22} text="ld x1, [x2]" color={accent} em={0.9} size={13} />
+          <L x={80} y={22} text="lb x1, 0(x2)" color={accent} em={0.9} size={13} />
         </g>
         <line x1="300" y1="112" x2="300" y2={trackY - 18} stroke={accent}
           strokeOpacity="0.4" strokeWidth="0.8" strokeDasharray="2 3"
