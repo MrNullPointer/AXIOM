@@ -82,27 +82,29 @@ const Card = forwardRef(function Card({ stage, subStageIndex, subStageT, depthIn
   const hasTerminal = !!script;
   const src = STAGE_SOURCE_RECTS[stage.id] || { x: 0.5, y: 0.5, w: 0.05, h: 0.05 };
   const color = STAGE_COLORS[stage.id] || 'rgb(var(--pad-glow))';
-  // Reading-pause linger: the script types faster than scroll
-  // progresses, so the tail end of every substage is a "linger" — the
-  // script holds fully typed while the user finishes reading, before
-  // the next substage boundary swaps the content. Without this gap, a
-  // single scroll tick at the substage edge replaces a just-finished
-  // sentence with a brand-new one, giving the user no beat to absorb.
+  // Typing-window placement: the script is wrapped in an AnimatePresence
+  // crossfade keyed on substage, so each new script enters with an
+  // opacity-0 → 1 fade. If typing started at substage t = 0 it would
+  // run *behind* the fade — by the time the script reached opacity 1
+  // most of the characters would already be typed and the user would
+  // see a finished line instead of the type-on. The window is offset
+  // so typing only begins after the fade-in completes:
   //
-  //   • Deep-dive (one script per substage): typed by 45 % of substage,
-  //     55 % linger before the boundary fade — half the substage is
-  //     pure reading time so the eye can absorb before the next one
-  //     swaps in.
-  //   • Flat (one script per stage): typed by 80 % of stage, 20 % linger
-  //     before the stage boundary card-pluck.
+  //   • Buffer  [0.00, 0.10) — fade-in window, termT pinned to 0
+  //   • Typing  [0.10, end)  — termT 0 → 1, characters appear word by word
+  //   • Linger  [end,  1.00] — fully typed, eye has time to read before swap
   //
-  // In both cases the linger length scales with how fast the user is
-  // scrolling — slow readers get a longer pause, fast scrollers get a
-  // shorter one but still see the full script before it swaps.
-  const TYPE_THROUGH = flat ? 0.80 : 0.45;
-  const termT = flat
-    ? Math.min(1, ((subStageIndex + subStageT) / 6) / TYPE_THROUGH)
-    : Math.min(1, subStageT / TYPE_THROUGH);
+  //   end = 0.55 for deep-dive (45 % typing, 45 % linger after the buffer)
+  //   end = 0.80 for flat (70 % typing across all 6 substages, 20 % linger)
+  //
+  // Because the buffer is normalized to substage progress, fast scrollers
+  // get a proportionally shorter buffer (in absolute ms) but the script
+  // is still legible thanks to the linger; slow scrollers get the full
+  // fade-in window before any characters appear.
+  const TYPE_START = 0.10;
+  const TYPE_END = flat ? 0.80 : 0.55;
+  const p = flat ? (subStageIndex + subStageT) / 6 : subStageT;
+  const termT = Math.min(1, Math.max(0, (p - TYPE_START) / (TYPE_END - TYPE_START)));
 
   // Card dimensions — sized to give the visualization breathing room
   // even when the narration terminal is also rendered. On wide viewports
