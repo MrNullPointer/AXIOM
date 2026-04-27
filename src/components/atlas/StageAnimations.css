@@ -760,16 +760,16 @@
 
 /* ============== Bus new sub-vizes ============== */
 .sv-bus-trace {
-  stroke-dasharray: 720;
-  stroke-dashoffset: 720;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
   animation: bus-trace 4.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 @keyframes bus-trace {
-  0%, 4%   { stroke-dashoffset: 720; opacity: 0.4; }
+  0%, 4%   { stroke-dashoffset: 100; opacity: 0.4; }
   20%      { opacity: 1; }
   60%      { stroke-dashoffset: 0; opacity: 1; }
-  88%      { stroke-dashoffset: -720; opacity: 0.4; }
-  100%     { stroke-dashoffset: 720; opacity: 0.4; }
+  88%      { stroke-dashoffset: -100; opacity: 0.4; }
+  100%     { stroke-dashoffset: 100; opacity: 0.4; }
 }
 .sv-bus-cursor {
   animation: bus-cursor 4.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;

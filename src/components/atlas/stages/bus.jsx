@@ -206,8 +206,11 @@ function BusL1({ accent }) {
           );
         })}
 
-        {/* Voltage trace — draws in left to right with the cursor */}
-        <path d={d}
+        {/* Voltage trace — draws in left to right with the cursor.
+            `pathLength="100"` normalizes the path so the CSS dash math
+            doesn't have to know the actual length (which varies with
+            segment count + vertical-transition height). */}
+        <path d={d} pathLength="100"
           stroke={accent} strokeWidth="2.2" fill="none"
           className="sv-bus-trace"
           style={{ filter: `drop-shadow(0 0 6px ${accent})` }} />
