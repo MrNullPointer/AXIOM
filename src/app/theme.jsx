@@ -1,37 +1,29 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo } from 'react';
 
-const ThemeContext = createContext(null);
-const STORAGE_KEY = 'axiom-theme';
-
-function readInitial() {
-  if (typeof document === 'undefined') return 'dark';
-  const set = document.documentElement.dataset.theme;
-  if (set === 'light' || set === 'dark') return set;
-  return 'dark';
-}
+// Light mode is intentionally disabled — Axiom is a dark-first identity
+// and a real second theme is a separate project. The provider stays so
+// existing call sites (CircuitFlow, DieHero, etc.) keep working, but it
+// always reports 'dark' and the toggle is a no-op.
+const ThemeContext = createContext({ theme: 'dark', setTheme: () => {}, toggle: () => {} });
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(readInitial);
-
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
+    if (typeof document === 'undefined') return;
+    document.documentElement.dataset.theme = 'dark';
     try {
-      localStorage.setItem(STORAGE_KEY, theme);
+      localStorage.removeItem('axiom-theme');
     } catch {
       /* ignore */
     }
-  }, [theme]);
-
-  const toggle = useCallback(() => {
-    setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
   }, []);
 
-  const value = useMemo(() => ({ theme, setTheme, toggle }), [theme, toggle]);
+  const value = useMemo(
+    () => ({ theme: 'dark', setTheme: () => {}, toggle: () => {} }),
+    [],
+  );
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {
-  const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error('useTheme must be used inside <ThemeProvider>');
-  return ctx;
+  return useContext(ThemeContext);
 }

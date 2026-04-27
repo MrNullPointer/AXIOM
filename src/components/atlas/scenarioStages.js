@@ -7,6 +7,7 @@
 // layout: focal core in the centre, cache columns left+right of it,
 // HBM bands at the outer edges, mixed regions in the inner sides.
 export const STAGE_SOURCE_RECTS = {
+  intro:      { x: 0.50, y: 0.50, w: 0.50, h: 0.50 }, // whole-chip overview
   issue:      { x: 0.46, y: 0.42, w: 0.10, h: 0.18 }, // CPU pipeline (focal)
   'l1-l2':    { x: 0.06, y: 0.22, w: 0.08, h: 0.55 }, // L1/L2 cache columns
   bus:        { x: 0.20, y: 0.46, w: 0.60, h: 0.10 }, // ring interconnect
@@ -14,6 +15,7 @@ export const STAGE_SOURCE_RECTS = {
   coherence:  { x: 0.18, y: 0.40, w: 0.10, h: 0.20 }, // coherence directory
   fill:       { x: 0.40, y: 0.40, w: 0.20, h: 0.20 }, // L3 slice (inner)
   retire:     { x: 0.46, y: 0.42, w: 0.08, h: 0.16 }, // register file (focal)
+  recap:      { x: 0.50, y: 0.50, w: 0.50, h: 0.50 }, // whole-chip summary
 };
 
 // Per-stage accent colour. Tied to the chip-component "tribe":
@@ -21,7 +23,11 @@ export const STAGE_SOURCE_RECTS = {
 //   DRAM (amber) · coherence (rose) · fill cascade (violet) · retire (gold).
 // Each viz uses its colour for active wires, lit gates, charge transfers,
 // state changes — so each stage has a visually distinct identity.
+//
+// intro/recap use a neutral pewter so they read as "meta" cards rather
+// than competing with the seven coloured stages.
 export const STAGE_COLORS = {
+  intro:      '#cfd8e3', // pewter (neutral overview)
   issue:      '#7df9ff', // cyan
   'l1-l2':    '#7cf3c0', // mint
   bus:        '#f5b461', // copper
@@ -29,6 +35,7 @@ export const STAGE_COLORS = {
   coherence:  '#ff7a90', // rose
   fill:       '#a78bfa', // violet
   retire:     '#ffd66a', // warm gold
+  recap:      '#cfd8e3', // pewter (neutral summary)
 };
 
 // Scroll-narrative stages — "Anatomy of a cache miss".
@@ -46,6 +53,15 @@ export const STAGE_COLORS = {
 // to show that cumulative.
 
 export const SCENARIO_STAGES = [
+  {
+    id: 'intro',
+    title: 'THE TRIP',
+    blockId: 'microarchitecture',
+    code: 'ld x1, [x2]   ; fetch one byte from memory',
+    desc: 'A single load instruction. If x2 points to a hot cache line, this resolves in ~4 cycles. If it misses every level of cache and walks all the way to DRAM, the same byte costs ~287 cycles. We are about to watch the slow path — the seven hops one byte takes when the caches all say no.',
+    latency: '0 cycles',
+    cumulative: '0 cycles',
+  },
   {
     id: 'issue',
     title: 'ISSUE',
@@ -107,6 +123,15 @@ export const SCENARIO_STAGES = [
     code: 'x1 ← 0xDEADBEEF',
     desc: 'Data lands in the architectural register file. The instruction retires from the reorder buffer. One byte cost roughly 287 cycles — the entire point of why caches exist.',
     latency: '1 cycle',
+    cumulative: '~287 cycles',
+  },
+  {
+    id: 'recap',
+    title: 'THE COST',
+    blockId: 'microarchitecture',
+    code: '287 cycles · 64 B fetched · 1 B used',
+    desc: 'A cache hit would have cost 4 cycles. We paid 287 because the line was cold — 70× slower. The good news: the 64 B that just landed will satisfy the next ~64 sequential accesses for almost free. That is locality, and it is the only thing that makes computers fast.',
+    latency: '—',
     cumulative: '~287 cycles',
   },
 ];

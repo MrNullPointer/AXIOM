@@ -1,9 +1,23 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { smoothScrollToTop } from '../../app/scroll.js';
 
 export default function Wordmark() {
+  const location = useLocation();
+  // Click "Axiom" → always end up at the top of the atlas. If already
+  // on '/', react-router skips navigation; we run a manual rAF smooth
+  // scroll so the page actually moves (native smooth-scroll gets
+  // cancelled by framer-motion's layout measurements — see scroll.js).
+  const handleClick = () => {
+    if (location.pathname === '/') {
+      smoothScrollToTop();
+    }
+    // For other paths, react-router navigates and App's <ScrollToTop>
+    // does an instant-scroll to the top — same end state.
+  };
   return (
     <Link
       to="/"
+      onClick={handleClick}
       className="group inline-flex items-center gap-2.5"
       aria-label="Axiom — return to atlas"
     >

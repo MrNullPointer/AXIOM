@@ -9,6 +9,7 @@ import IndexPage from '../pages/IndexPage.jsx';
 import {
   NarrativeProvider,
   useNarrativeStage,
+  useNarrativeActive,
 } from '../components/atlas/narrativeContext.jsx';
 import { useMotion, densityMultiplier } from './motion.jsx';
 
@@ -20,12 +21,17 @@ const ConceptPage = lazy(() => import('../pages/ConceptPage.jsx'));
 
 function Layout({ onOpenSearch, density, isHome }) {
   const { level: motionLevel } = useMotion();
-  const effectiveDensity = density * densityMultiplier(motionLevel);
   // The Atlas page publishes its current scroll-narrative stage here; we
   // forward it to CircuitFlow so the BG canvas plays scripted electron
   // traffic matching the cache-miss story. Off-homepage routes always
   // see null (atlas page only sets it).
   const narrativeStage = useNarrativeStage();
+  // While the user is scrolling through the narrative, the dim overlay
+  // covers the BG. Drop CircuitFlow density so we're not painting a rich
+  // chip surface for nobody to see.
+  const narrativeActive = useNarrativeActive();
+  const baseDensity = narrativeActive ? Math.min(density, 0.45) : density;
+  const effectiveDensity = baseDensity * densityMultiplier(motionLevel);
 
   // Homepage-only cinema rig:
   //   • --bg-rot-x / --bg-rot-y : the BG silicon plane tilts in CSS

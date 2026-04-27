@@ -1,3 +1,4 @@
+import { Link, useNavigate } from 'react-router-dom';
 import { DOMAINS } from '../../data/domains.js';
 
 /**
@@ -8,16 +9,22 @@ import { DOMAINS } from '../../data/domains.js';
  *
  * Sits on the LEFT side of the plucked card so the user always knows
  * WHICH chip component the deep visualization on the right belongs to.
- * No text inside the thumbnail itself — the active block has a colored
- * fill, the rest are dim outlined rectangles. Below the thumbnail: the
- * active block's name (the only text in the side panel).
+ *
+ * Each block becomes a real navigation target — clicking jumps to
+ * `/d/{id}`, hovering shows a native SVG <title> tooltip + a soft glow.
+ * Pointer events are scoped to this panel via CSS so the rest of the
+ * plucked card stays non-interactive (BG keeps scrolling under it).
+ *
+ * The SVG block hit-targets use a `<g>` with onClick + role="link"
+ * rather than an `<a>` — keeps the SVG namespace clean and lets the
+ * router navigate without a full page transition.
  */
 export default function SideBlockThumbnail({ activeBlockId, color }) {
   const active = DOMAINS.find((d) => d.id === activeBlockId);
-  // Floorplan grid is 12 cols × 8 rows
+  const navigate = useNavigate();
   return (
     <div
-      className="flex h-full w-full flex-col items-stretch justify-between"
+      className="atlas-side-thumbnail flex h-full w-full flex-col items-stretch justify-between"
       style={{
         gap: '14px',
         padding: '4px 8px 4px 0',
@@ -67,7 +74,9 @@ export default function SideBlockThumbnail({ activeBlockId, color }) {
             />
           ))}
 
-          {/* All 10 blocks */}
+          {/* All 10 blocks. Each `<g>` is a hit target that navigates
+              to its domain on click; native <title> gives a hover
+              tooltip. role/tabIndex make it keyboard-focusable. */}
           {DOMAINS.map((d) => {
             const x = 2 + (d.floor.col / 12) * 236 + 2;
             const y = 2 + (d.floor.row / 8) * 156 + 2;
@@ -75,24 +84,44 @@ export default function SideBlockThumbnail({ activeBlockId, color }) {
             const h = (d.floor.h / 8) * 156 - 4;
             const isActive = d.id === activeBlockId;
             return (
-              <g key={d.id}>
+              <g
+                key={d.id}
+                className="atlas-side-block"
+                role="link"
+                tabIndex={0}
+                aria-label={`${d.full} — open domain`}
+                onClick={() => navigate(`/d/${d.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(`/d/${d.id}`);
+                  }
+                }}
+              >
+                <title>{`${d.label} — ${d.blurb}`}</title>
+                {/* Invisible hit area enlarges the click target slightly
+                    so neighboring blocks aren't hard to land on. */}
+                <rect
+                  x={x - 1}
+                  y={y - 1}
+                  width={w + 2}
+                  height={h + 2}
+                  fill="transparent"
+                />
                 <rect
                   x={x}
                   y={y}
                   width={w}
                   height={h}
                   rx="2"
-                  fill={isActive ? color : 'none'}
-                  fillOpacity={isActive ? 0.35 : 0}
+                  fill={isActive ? color : 'transparent'}
+                  fillOpacity={isActive ? 0.35 : 0.001}
                   stroke={isActive ? color : 'rgba(255,255,255,0.18)'}
                   strokeWidth={isActive ? 1.2 : 0.6}
                   style={{
                     filter: isActive ? `drop-shadow(0 0 8px ${color})` : 'none',
-                    transition:
-                      'fill-opacity 360ms ease, stroke 360ms ease, stroke-width 360ms ease, filter 360ms ease',
                   }}
                 />
-                {/* Tiny dot inside active block (focus marker) */}
                 {isActive && (
                   <circle
                     cx={x + w / 2}
@@ -110,41 +139,50 @@ export default function SideBlockThumbnail({ activeBlockId, color }) {
         </svg>
       </div>
 
-      {/* Active block name + tagline */}
-      <div style={{ flex: '0 0 auto' }}>
-        <div
-          style={{
-            fontSize: '10px',
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            color: 'var(--ink-faint)',
-            marginBottom: '6px',
-          }}
+      {/* Active block name + tagline — Link to the active domain. */}
+      {active ? (
+        <Link
+          to={`/d/${active.id}`}
+          className="atlas-side-active-link"
+          aria-label={`Open ${active.full}`}
+          style={{ flex: '0 0 auto', display: 'block' }}
         >
-          we are inside
-        </div>
-        <div
-          style={{
-            fontSize: '18px',
-            fontWeight: 500,
-            letterSpacing: '0.02em',
-            color,
-            lineHeight: 1.15,
-          }}
-        >
-          {active?.label || '—'}
-        </div>
-        <div
-          style={{
-            fontSize: '11px',
-            color: 'var(--ink-soft)',
-            marginTop: '8px',
-            lineHeight: 1.45,
-          }}
-        >
-          {active?.blurb || ''}
-        </div>
-      </div>
+          <div
+            style={{
+              fontSize: '10px',
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: 'var(--ink-faint)',
+              marginBottom: '6px',
+            }}
+          >
+            we are inside
+          </div>
+          <div
+            style={{
+              fontSize: '18px',
+              fontWeight: 500,
+              letterSpacing: '0.02em',
+              color,
+              lineHeight: 1.15,
+            }}
+          >
+            {active.label}
+          </div>
+          <div
+            style={{
+              fontSize: '11px',
+              color: 'var(--ink-soft)',
+              marginTop: '8px',
+              lineHeight: 1.45,
+            }}
+          >
+            {active.blurb}
+          </div>
+        </Link>
+      ) : (
+        <div style={{ flex: '0 0 auto' }} />
+      )}
     </div>
   );
 }

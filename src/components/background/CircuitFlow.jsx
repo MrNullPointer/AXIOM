@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { useTheme } from '../../app/theme.jsx';
 
 /**
  * CircuitFlow — die-shot background.
@@ -32,16 +31,11 @@ export default function CircuitFlow({
   const rich = density >= 1;
   const minimal = density < 0.5;
   const canvasRef = useRef(null);
-  const { theme } = useTheme();
-  const themeRef = useRef(theme);
   // narrativeStage is read every frame in the rAF loop. We keep it in a
   // ref so the Atlas page can update it from scroll without recreating
   // the entire effect (which would tear down the canvas + electrons).
   const narrativeStageRef = useRef(narrativeStage);
 
-  useEffect(() => {
-    themeRef.current = theme;
-  }, [theme]);
   useEffect(() => {
     narrativeStageRef.current = narrativeStage;
   }, [narrativeStage]);
@@ -59,108 +53,59 @@ export default function CircuitFlow({
       motion === 'off' ||
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const PAL = {
-      dark: {
-        bgInner: '#04060c',
-        bgOuter: '#01020a',
-        // Almost imperceptible warm wash — keeps the silicon feeling without
-        // tipping into "all gold".
-        substrateGlow: 'rgba(245, 180, 97, 0.010)',
-        grid: 'rgba(150, 170, 200, 0.04)',
-        wafer: 'rgba(255, 255, 255, 0.03)',
-        pad: 'rgba(180, 195, 220, 0.18)',
-        cornerMark: 'rgba(180, 195, 220, 0.14)',
+    const palette = {
+      bgInner: '#04060c',
+      bgOuter: '#01020a',
+      // Almost imperceptible warm wash — keeps the silicon feeling without
+      // tipping into "all gold".
+      substrateGlow: 'rgba(245, 180, 97, 0.010)',
+      grid: 'rgba(150, 170, 200, 0.04)',
+      wafer: 'rgba(255, 255, 255, 0.03)',
+      pad: 'rgba(180, 195, 220, 0.18)',
+      cornerMark: 'rgba(180, 195, 220, 0.14)',
 
-        blockFill: 'rgba(150, 170, 200, 0.012)',
-        blockEdge: 'rgba(180, 195, 220, 0.13)',
-        blockEdgeStrong: 'rgba(180, 195, 220, 0.22)',
+      blockFill: 'rgba(150, 170, 200, 0.012)',
+      blockEdge: 'rgba(180, 195, 220, 0.13)',
+      blockEdgeStrong: 'rgba(180, 195, 220, 0.22)',
 
-        m1: 'rgba(170, 195, 220, 0.22)',
-        m2: 'rgba(170, 195, 220, 0.12)',
-        gate: 'rgba(255, 200, 120, 0.28)',
-        via: 'rgba(220, 230, 240, 0.30)',
-        sramCell: 'rgba(180, 200, 225, 0.18)',
-        sramCellHot: 'rgba(255, 220, 160, 0.36)',
-        sramOutline: 'rgba(180, 195, 220, 0.14)',
-        cellYellow: 'rgba(255, 220, 130, 0.55)',
-        cellBlue: 'rgba(125, 200, 255, 0.55)',
-        cellGreen: 'rgba(140, 240, 180, 0.55)',
+      m1: 'rgba(170, 195, 220, 0.22)',
+      m2: 'rgba(170, 195, 220, 0.12)',
+      gate: 'rgba(255, 200, 120, 0.28)',
+      via: 'rgba(220, 230, 240, 0.30)',
+      sramCell: 'rgba(180, 200, 225, 0.18)',
+      sramCellHot: 'rgba(255, 220, 160, 0.36)',
+      sramOutline: 'rgba(180, 195, 220, 0.14)',
+      cellYellow: 'rgba(255, 220, 130, 0.55)',
+      cellBlue: 'rgba(125, 200, 255, 0.55)',
+      cellGreen: 'rgba(140, 240, 180, 0.55)',
 
-        bus: 'rgba(170, 195, 220, 0.13)',
-        busAnchor: 'rgba(180, 200, 225, 0.30)',
+      bus: 'rgba(170, 195, 220, 0.13)',
+      busAnchor: 'rgba(180, 200, 225, 0.30)',
 
-        bandFill: 'rgba(245, 180, 97, 0.03)',
-        bandRung: 'rgba(245, 200, 130, 0.28)',
-        bandWave: '#ffd28a',
+      bandFill: 'rgba(245, 180, 97, 0.03)',
+      bandRung: 'rgba(245, 200, 130, 0.28)',
+      bandWave: '#ffd28a',
 
-        shaftFill: 'rgba(245, 200, 138, 0.02)',
-        shaftCore: 'rgba(255, 220, 160, 0.55)',
-        shaftEdge: 'rgba(245, 200, 130, 0.20)',
+      shaftFill: 'rgba(245, 200, 138, 0.02)',
+      shaftCore: 'rgba(255, 220, 160, 0.55)',
+      shaftEdge: 'rgba(245, 200, 130, 0.20)',
 
-        coreFrame: 'rgba(245, 200, 138, 0.32)',
-        coreInner: 'rgba(255, 230, 180, 0.55)',
-        coreGlow: '#ffcf85',
+      coreFrame: 'rgba(245, 200, 138, 0.32)',
+      coreInner: 'rgba(255, 230, 180, 0.55)',
+      coreGlow: '#ffcf85',
 
-        // Four electron colours — yellow, blue, green, red. Each maps to a
-        // distinct bus-channel intent: data payload, address/control,
-        // ack / store completion, coherence / writeback. Red is the
-        // rarest because writebacks and snoops are infrequent on a busy
-        // chip but visually distinctive when they happen.
-        electronYellow: '#ffd66a',
-        electronBlue: '#7dc8ff',
-        electronGreen: '#8aef9f',
-        electronRed: '#ff8a8a',
+      // Four electron colours — yellow, blue, green, red. Each maps to a
+      // distinct bus-channel intent: data payload, address/control,
+      // ack / store completion, coherence / writeback. Red is the
+      // rarest because writebacks and snoops are infrequent on a busy
+      // chip but visually distinctive when they happen.
+      electronYellow: '#ffd66a',
+      electronBlue: '#7dc8ff',
+      electronGreen: '#8aef9f',
+      electronRed: '#ff8a8a',
 
-        flash: '#ffe0a0',
-        bloom: 'rgba(245, 180, 97, 0.045)',
-      },
-      light: {
-        bgInner: '#f4eddd',
-        bgOuter: '#eadfc4',
-        substrateGlow: 'rgba(140, 65, 20, 0.025)',
-        grid: 'rgba(29, 58, 122, 0.05)',
-        wafer: 'rgba(14, 26, 43, 0.04)',
-        pad: 'rgba(29, 58, 122, 0.30)',
-        cornerMark: 'rgba(29, 58, 122, 0.22)',
-
-        blockFill: 'rgba(29, 58, 122, 0.02)',
-        blockEdge: 'rgba(29, 58, 122, 0.22)',
-        blockEdgeStrong: 'rgba(29, 58, 122, 0.36)',
-
-        m1: 'rgba(29, 58, 122, 0.30)',
-        m2: 'rgba(29, 58, 122, 0.18)',
-        gate: 'rgba(140, 65, 20, 0.40)',
-        via: 'rgba(14, 26, 43, 0.45)',
-        sramCell: 'rgba(29, 58, 122, 0.22)',
-        sramCellHot: 'rgba(140, 65, 20, 0.40)',
-        sramOutline: 'rgba(29, 58, 122, 0.16)',
-        cellYellow: 'rgba(184, 130, 35, 0.55)',
-        cellBlue: 'rgba(29, 58, 122, 0.55)',
-        cellGreen: 'rgba(42, 111, 74, 0.55)',
-
-        bus: 'rgba(29, 58, 122, 0.18)',
-        busAnchor: 'rgba(29, 58, 122, 0.40)',
-
-        bandFill: 'rgba(140, 65, 20, 0.08)',
-        bandRung: 'rgba(140, 65, 20, 0.40)',
-        bandWave: '#b86a1f',
-
-        shaftFill: 'rgba(140, 65, 20, 0.05)',
-        shaftCore: 'rgba(140, 65, 20, 0.65)',
-        shaftEdge: 'rgba(140, 65, 20, 0.32)',
-
-        coreFrame: 'rgba(140, 65, 20, 0.45)',
-        coreInner: 'rgba(140, 65, 20, 0.65)',
-        coreGlow: '#b86a1f',
-
-        electronYellow: '#b8821f',
-        electronBlue: '#1d3a7a',
-        electronGreen: '#2a6f4a',
-        electronRed: '#b3361f',
-
-        flash: '#d18a3a',
-        bloom: 'rgba(184, 106, 31, 0.07)',
-      },
+      flash: '#ffe0a0',
+      bloom: 'rgba(245, 180, 97, 0.045)',
     };
 
     let width = 0;
@@ -480,7 +425,6 @@ export default function CircuitFlow({
     // ---- Static painting --------------------------------------------- //
 
     function paintStatic() {
-      const palette = themeRef.current === 'light' ? PAL.light : PAL.dark;
       const off = document.createElement('canvas');
       off.width = canvas.width;
       off.height = canvas.height;
@@ -1128,7 +1072,6 @@ export default function CircuitFlow({
      * passes — the comet-trail "wire just carried this signal" effect.
      */
     function spawnTransaction({ outbound = false, regionId = null } = {}) {
-      const palette = themeRef.current === 'light' ? PAL.light : PAL.dark;
 
       const srcId = regionId || pickSourceRegionId();
       const chain = chainToFocal(srcId);
@@ -1395,7 +1338,6 @@ export default function CircuitFlow({
     }
 
     function spawnCursorTwinkle() {
-      const palette = themeRef.current === 'light' ? PAL.light : PAL.dark;
       // Spawn within ~70px of the cursor, biased slightly toward the
       // outside so the light feels like it's spreading from the pointer.
       const angle = Math.random() * Math.PI * 2;
@@ -1425,7 +1367,6 @@ export default function CircuitFlow({
       ctx.clearRect(0, 0, width, height);
       if (staticLayer) ctx.drawImage(staticLayer, 0, 0, width, height);
 
-      const palette = themeRef.current === 'light' ? PAL.light : PAL.dark;
 
       // Drifting bloom — soft amber glaze that orbits behind everything.
       const bx = width * (0.5 + 0.30 * Math.cos(now * 0.000085));
@@ -1783,20 +1724,11 @@ export default function CircuitFlow({
     };
     window.addEventListener('resize', onResize);
 
-    const themeWatcher = setInterval(() => {
-      const cur = document.documentElement.dataset.theme;
-      if (cur !== themeRef.current) {
-        themeRef.current = cur;
-        paintStatic();
-      }
-    }, 250);
-
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseleave', onMouseLeaveDoc);
-      clearInterval(themeWatcher);
     };
   }, [rich, minimal, motion]);
 

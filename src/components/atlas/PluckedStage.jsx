@@ -1,14 +1,24 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { forwardRef } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { useLocation, useNavigate } from 'react-router-dom';
 import StageAnimation from './StageAnimations.jsx';
 import SideBlockThumbnail from './SideBlockThumbnail.jsx';
 import { STAGE_SOURCE_RECTS, STAGE_COLORS } from './scenarioStages.js';
+import { smoothScrollToTop } from '../../app/scroll.js';
 
-// Substage → depth mapping for the symmetric resurface narrative.
+// Substage → depth mapping for the symmetric resurface narrative + rest.
 // Going down: 0,1,2 maps to depths 0,1,2.
 // Coming back up: 3,4 maps to depths 1,0.
+// Substage 5 is a rest beat — the card itself is hidden by the parent,
+// so the depth value here is only used if rest gets rendered briefly
+// (we keep it on the same depth as substage 4 to avoid a final flicker).
 // The same depth viz mounts on the way down and again on the way up,
 // but with AnimatePresence the crossfade transitions both directions.
-const SUBSTAGE_TO_DEPTH = [0, 1, 2, 1, 0];
+const SUBSTAGE_TO_DEPTH = [0, 1, 2, 1, 0, 0];
+
+// intro/recap don't have an L0/L1/L2 depth pattern — they're single
+// overview/summary visualizations that span the entire stage.
+const FLAT_STAGES = new Set(['intro', 'recap']);
 
 /**
  * PluckedStage — the foreground card that "plucks" the active stage's
@@ -31,10 +41,19 @@ const SUBSTAGE_TO_DEPTH = [0, 1, 2, 1, 0];
  *      a re-mount because they're never simultaneously active.
  */
 export default function PluckedStage({ stage, subStageIndex = 0, subStageT = 0, visible }) {
-  const depthIndex = SUBSTAGE_TO_DEPTH[subStageIndex] ?? 0;
-  const ascending = subStageIndex > 2;
+  const flat = stage && FLAT_STAGES.has(stage.id);
+  const depthIndex = flat ? 0 : (SUBSTAGE_TO_DEPTH[subStageIndex] ?? 0);
+  const ascending = !flat && subStageIndex > 2;
+  const reduce = useReducedMotion();
   return (
-    <AnimatePresence mode="popLayout">
+    // Default-mode AnimatePresence (NOT mode="popLayout"). popLayout
+    // triggers framer-motion's layout measurement system, which
+    // captures + restores window.scrollY around each measurement —
+    // that cancels any in-flight smooth scroll (e.g. from the "↑
+    // atlas" button). Default mode lets exiting + entering cards
+    // overlap via their own initial/animate/exit transitions, no
+    // layout measurement needed.
+    <AnimatePresence>
       {visible && stage ? (
         <Card
           key={stage.id}
@@ -43,25 +62,32 @@ export default function PluckedStage({ stage, subStageIndex = 0, subStageT = 0, 
           subStageT={subStageT}
           depthIndex={depthIndex}
           ascending={ascending}
+          flat={flat}
+          reduce={reduce}
         />
       ) : null}
     </AnimatePresence>
   );
 }
 
-function Card({ stage, subStageIndex, subStageT, depthIndex, ascending }) {
+const Card = forwardRef(function Card({ stage, subStageT, depthIndex, ascending, flat, reduce }, ref) {
   const src = STAGE_SOURCE_RECTS[stage.id] || { x: 0.5, y: 0.5, w: 0.05, h: 0.05 };
   const color = STAGE_COLORS[stage.id] || 'rgb(var(--pad-glow))';
 
-  const initial = {
-    top: `${src.y * 100}vh`,
-    left: `${src.x * 100}vw`,
-    width: `${src.w * 100}vw`,
-    height: `${src.h * 100}vh`,
-    opacity: 0,
-    filter: 'blur(8px)',
-    scale: 0.6,
-  };
+  // Reduced-motion: snap from the same end-state, skip the pluck physics
+  // and the depth-crossfade spring entirely. The card still cross-fades
+  // softly via opacity so AnimatePresence keying stays meaningful.
+  const initial = reduce
+    ? { top: '50vh', left: '50vw', width: 'min(1100px, 95vw)', height: 'min(620px, 84vh)', opacity: 0, x: '-50%', y: '-50%' }
+    : {
+        top: `${src.y * 100}vh`,
+        left: `${src.x * 100}vw`,
+        width: `${src.w * 100}vw`,
+        height: `${src.h * 100}vh`,
+        opacity: 0,
+        filter: 'blur(8px)',
+        scale: 0.6,
+      };
   const animate = {
     top: '50vh',
     left: '50vw',
@@ -73,26 +99,32 @@ function Card({ stage, subStageIndex, subStageT, depthIndex, ascending }) {
     x: '-50%',
     y: '-50%',
   };
-  const exit = { ...initial, transition: { duration: 0.42 } };
+  const exit = reduce
+    ? { ...initial, transition: { duration: 0.18 } }
+    : { ...initial, transition: { duration: 0.42 } };
 
-  return (
-    <motion.div
-      className="atlas-plucked-card"
-      initial={initial}
-      animate={animate}
-      exit={exit}
-      transition={{
+  const cardTransition = reduce
+    ? { duration: 0.25 }
+    : {
         type: 'spring',
         stiffness: 78,
         damping: 20,
         mass: 0.9,
         opacity: { duration: 0.35 },
         filter: { duration: 0.35 },
-      }}
+      };
+
+  return (
+    <motion.div
+      ref={ref}
+      className="atlas-plucked-card"
+      initial={initial}
+      animate={animate}
+      exit={exit}
+      transition={cardTransition}
       style={{
         position: 'fixed',
         zIndex: 30,
-        pointerEvents: 'none',
         '--stage-color': color,
       }}
     >
@@ -118,7 +150,11 @@ function Card({ stage, subStageIndex, subStageT, depthIndex, ascending }) {
           gap: '12px',
         }}
       >
-        {/* Header — stage tag + plucked-from indicator */}
+        {/* Header — stage tag on the left, "↑ atlas" return button on
+            the right. The button is the primary discoverable way to
+            jump back to the homepage from anywhere in the narrative —
+            glass-styled pill, accent border, gentle lift on hover.
+            Available on every stage including intro / recap. */}
         <div
           className="flex items-center justify-between"
           style={{
@@ -129,9 +165,10 @@ function Card({ stage, subStageIndex, subStageT, depthIndex, ascending }) {
           }}
         >
           <span>
-            stage · <span style={{ color }}>{stage.title}</span>
+            {flat ? (stage.id === 'intro' ? 'overview · ' : 'recap · ') : 'stage · '}
+            <span style={{ color }}>{stage.title}</span>
           </span>
-          <span style={{ color, opacity: 0.7 }}>plucked from die</span>
+          <AtlasReturnButton color={color} />
         </div>
 
         {/* Code line */}
@@ -146,59 +183,62 @@ function Card({ stage, subStageIndex, subStageT, depthIndex, ascending }) {
           <span style={{ color: 'var(--ink-faint)' }}>›</span> {stage.code}
         </div>
 
-        {/* Depth breadcrumb — shows current zoom level (using depthIndex
-            so the same dot lights on the way down and on the way back). */}
-        <DepthBreadcrumb depthIndex={depthIndex} ascending={ascending} color={color} />
+        {/* Depth breadcrumb only for the seven deep-dive stages — the
+            overview cards aren't a zoom into anything. */}
+        {!flat && (
+          <DepthBreadcrumb depthIndex={depthIndex} ascending={ascending} color={color} />
+        )}
 
-        {/* Two-column body: left = side block context (chip locator +
-            block name); right = pure-physics deep visualization with
-            no inline labels (the side panel provides all context). */}
+        {/* Two-column body. Below the layout breakpoint (~1280px) it
+            collapses to a single column with the side-panel acting as a
+            compact horizontal strip — see plucked-card.css. flat
+            stages (intro/recap) drop the side panel and let the
+            visualization fill the full card width. */}
         <div
-          style={{
-            flex: 1,
-            minHeight: 0,
-            display: 'grid',
-            gridTemplateColumns: '220px 1fr',
-            gap: '24px',
-          }}
+          className={`atlas-plucked-body${flat ? ' atlas-plucked-body-flat' : ''}`}
         >
-          {/* Left: side context panel */}
-          <div
-            style={{
-              borderRight: `1px solid ${color}22`,
-              paddingRight: '20px',
-            }}
-          >
-            <SideBlockThumbnail
-              activeBlockId={stage.blockId}
-              color={color}
-            />
-          </div>
+          {!flat && (
+            <div className="atlas-plucked-side" style={{ borderColor: `${color}22` }}>
+              <SideBlockThumbnail
+                activeBlockId={stage.blockId}
+                color={color}
+              />
+            </div>
+          )}
 
-          {/* Right: the deep visualization, label-free */}
           <div style={{ position: 'relative', minHeight: 0 }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${stage.id}-${depthIndex}`}
-                initial={{
-                  opacity: 0,
-                  // Going down: scale up from 0.92 (zoom-in feel).
-                  // Coming back up: scale down from 1.08 (zoom-out feel).
-                  scale: ascending ? 1.08 : 0.92,
-                  y: ascending ? -8 : 8,
-                }}
+                initial={
+                  reduce
+                    ? { opacity: 0 }
+                    : {
+                        opacity: 0,
+                        scale: ascending ? 1.08 : 0.92,
+                        y: ascending ? -8 : 8,
+                      }
+                }
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{
-                  opacity: 0,
-                  scale: ascending ? 0.92 : 1.08,
-                  y: ascending ? 8 : -8,
-                }}
-                transition={{
-                  type: 'spring',
-                  stiffness: 110,
-                  damping: 22,
-                  opacity: { duration: 0.32 },
-                }}
+                exit={
+                  reduce
+                    ? { opacity: 0 }
+                    : {
+                        opacity: 0,
+                        scale: ascending ? 0.92 : 1.08,
+                        y: ascending ? 8 : -8,
+                      }
+                }
+                transition={
+                  reduce
+                    ? { duration: 0.18 }
+                    : {
+                        type: 'spring',
+                        stiffness: 110,
+                        damping: 22,
+                        opacity: { duration: 0.32 },
+                      }
+                }
                 style={{ width: '100%', height: '100%', position: 'absolute' }}
               >
                 <StageAnimation
@@ -213,6 +253,62 @@ function Card({ stage, subStageIndex, subStageT, depthIndex, ascending }) {
         </div>
       </div>
     </motion.div>
+  );
+});
+
+/**
+ * AtlasReturnButton — the "↑ atlas" affordance in the card header.
+ *
+ * Smoothly scrolls the page back to the top (the atlas hero) with a
+ * gentle ease, regardless of how deep into the narrative the user is.
+ * Glass-styled pill, accent-tinted, lifts on hover. Pointer events are
+ * scoped via CSS (.atlas-return-btn) so the button works inside the
+ * otherwise pointer-events:none plucked card.
+ *
+ * Reduced-motion users get an instant scroll-to-top instead of the
+ * smooth animation.
+ */
+function AtlasReturnButton({ color }) {
+  const reduce = useReducedMotion();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const handleClick = () => {
+    // If we're not on the homepage, navigate there first (the
+    // ScrollToTop component in App.jsx will instant-scroll on the
+    // route change). If we're already on '/', smooth-scroll to top.
+    if (location.pathname !== '/') {
+      navigate('/');
+      return;
+    }
+    if (reduce) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      return;
+    }
+    smoothScrollToTop();
+  };
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className="atlas-return-btn"
+      aria-label="Return to atlas"
+      style={{ '--btn-accent': color }}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        width="11"
+        height="11"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <polyline points="6 14 12 8 18 14" />
+      </svg>
+      <span>atlas</span>
+    </button>
   );
 }
 
@@ -229,16 +325,16 @@ function DepthBreadcrumb({ depthIndex, ascending, color }) {
         fontSize: '9px',
         letterSpacing: '0.22em',
         textTransform: 'uppercase',
-        color: 'var(--ink-faint)',
+        color: 'var(--ink-soft)',
       }}
     >
-      <span style={{ opacity: 0.7 }}>depth</span>
+      <span style={{ opacity: 0.85 }}>depth</span>
       {/* Direction arrow — down while descending, up while resurfacing */}
       <span
         aria-hidden="true"
         style={{
           color,
-          opacity: 0.7,
+          opacity: 0.85,
           transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
           transform: ascending ? 'rotate(180deg)' : 'rotate(0deg)',
           display: 'inline-block',
@@ -263,7 +359,13 @@ function DepthBreadcrumb({ depthIndex, ascending, color }) {
               transition: 'width 320ms cubic-bezier(0.22, 1, 0.36, 1), background 320ms ease',
             }}
           />
-          <span style={{ color: i === depthIndex ? color : 'var(--ink-faint)', opacity: i === depthIndex ? 1 : 0.4 }}>
+          <span
+            style={{
+              color: i === depthIndex ? color : 'var(--ink-soft)',
+              fontWeight: i === depthIndex ? 500 : 400,
+              opacity: i === depthIndex ? 1 : 0.55,
+            }}
+          >
             L{i} · {labels[i]}
           </span>
         </span>
@@ -271,8 +373,3 @@ function DepthBreadcrumb({ depthIndex, ascending, color }) {
     </div>
   );
 }
-
-// SourceIndicator removed — the SideBlockThumbnail inside the card now
-// communicates "you are here on the chip" via the highlighted block in
-// the mini-floorplan. The viewport-fixed glowing frame was redundant
-// and (especially for the wide BUS stage) felt like clutter.
