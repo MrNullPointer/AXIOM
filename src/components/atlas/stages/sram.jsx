@@ -50,13 +50,13 @@ function SramL0({ accent }) {
             fontSize="9" fontFamily={FONT}
             fill={accent} fillOpacity="0.85"
             letterSpacing="0.18em" style={{ textTransform: 'uppercase' }}>
-            tag (37 b)
+            tag (35 b)
           </text>
           <text x={380} y={15} textAnchor="middle"
             fontSize="9" fontFamily={FONT}
             fill={accent} fillOpacity="0.85"
             letterSpacing="0.18em" style={{ textTransform: 'uppercase' }}>
-            set (5 b)
+            set (7 b)
           </text>
           <text x={540} y={15} textAnchor="middle"
             fontSize="9" fontFamily={FONT}
