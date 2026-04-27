@@ -224,10 +224,10 @@ export const NARRATIVE_SCRIPTS = {
     [
       '$ inspect dram.cell --xray',
       '  1T1C · one transistor + one capacitor',
-      '  · WL high → access NMOS conducts',
-      '  · charge dumps from Cs onto BL',
-      '  · sense amp resolves 0 or 1',
-      '  · reading destroys the value',
+      '  · BL precharged to ½VDD before access',
+      '  · WL high → Cs shares charge with BL',
+      '  · BL shifts ~100 mV above or below ½VDD',
+      '  · sense amp swings to full rail · restores Cs',
       '  what stores it? open the cap ▾',
     ],
 
@@ -236,8 +236,8 @@ export const NARRATIVE_SCRIPTS = {
       '  parallel-plate cap · ~30 fF',
       '  · top plate above access drain',
       '  · dielectric (high-k) between',
-      '  · bottom plate to GND',
-      '  · charge leaks · refresh every 64 ms',
+      '  · bottom plate at Vplate (~½VDD)',
+      '  · charge leaks toward Vplate · refresh / 64 ms',
       '→ memory is a bucket of electrons.',
     ],
 
