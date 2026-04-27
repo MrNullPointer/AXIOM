@@ -130,6 +130,122 @@ export default function Atlas() {
       if (id) prefetchStage(id);
     }
   }, [stageIndex, inView]);
+
+  // Keyboard navigation through the narrative. Arrow keys step one
+  // substage at a time, PageUp/Down step a full stage, Home/End jump
+  // to the narrative's start/end. We only intercept when the narrative
+  // is in view and the user isn't typing into an input. Each press
+  // smooth-scrolls; the rAF tick converts the moving scrollY into
+  // substage-progress on the way.
+  //
+  // Implementation note: holding an arrow key fires repeats faster
+  // than a smooth-scroll completes, so reading "current substage"
+  // from window.scrollY mid-flight would re-target the same substage
+  // and the user would feel stuck. We track the *commanded* substage
+  // in a ref and increment from there. When the user mouse-scrolls or
+  // taps a different control, the ref re-syncs to the actual position
+  // on the first quiet frame after scroll settles.
+  const keyTargetRef = useRef(0);
+  useEffect(() => {
+    const subTotal = SCENARIO_STAGES.length * SUB_STAGES;
+
+    function isTypingTarget() {
+      const el = document.activeElement;
+      if (!el) return false;
+      const tag = (el.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+      if (el.isContentEditable) return true;
+      return false;
+    }
+    function currentSubstageIdx() {
+      const el = narrativeRef.current;
+      if (!el) return 0;
+      const rect = el.getBoundingClientRect();
+      const total = Math.max(1, rect.height - window.innerHeight);
+      const p = Math.max(0, Math.min(1, -rect.top / total));
+      return Math.min(subTotal - 1, Math.floor(p * subTotal));
+    }
+    function scrollToSubstage(idx) {
+      const el = narrativeRef.current;
+      if (!el) return;
+      const clamped = Math.max(0, Math.min(subTotal - 1, idx));
+      keyTargetRef.current = clamped;
+      const rect = el.getBoundingClientRect();
+      const top = rect.top + window.scrollY;
+      const total = Math.max(1, rect.height - window.innerHeight);
+      // Aim ~25 % into the substage so the script has a moment to
+      // type before the next press could advance again.
+      const target = top + ((clamped + 0.25) / subTotal) * total;
+      window.scrollTo({ top: target, behavior: 'smooth' });
+    }
+    function narrativeIsActive() {
+      const el = narrativeRef.current;
+      if (!el) return false;
+      const rect = el.getBoundingClientRect();
+      return rect.top < window.innerHeight && rect.bottom > 0;
+    }
+    // Re-sync the commanded ref to the actual scroll position when
+    // the user is no longer in the middle of a key-driven scroll.
+    // Detect "settled" by debouncing the scroll event — if 180 ms
+    // pass with no further scroll, the smooth-scroll has either
+    // finished or the user mouse-scrolled to a new place.
+    let settleTimer = 0;
+    function onScrollSettle() {
+      window.clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(() => {
+        keyTargetRef.current = currentSubstageIdx();
+      }, 180);
+    }
+    // Initial sync once the ref is mounted — without this, the very
+    // first key press from a mouse-scrolled position uses the stale
+    // 0 default and snaps the user back to the start of the narrative.
+    keyTargetRef.current = currentSubstageIdx();
+    function onKey(e) {
+      if (isTypingTarget()) return;
+      if (!narrativeIsActive()) return;
+      switch (e.key) {
+        case 'ArrowDown':
+        case 'ArrowRight':
+          e.preventDefault();
+          scrollToSubstage(keyTargetRef.current + 1);
+          break;
+        case 'ArrowUp':
+        case 'ArrowLeft':
+          e.preventDefault();
+          scrollToSubstage(keyTargetRef.current - 1);
+          break;
+        case 'PageDown':
+          e.preventDefault();
+          scrollToSubstage(
+            Math.min(subTotal - 1, (Math.floor(keyTargetRef.current / SUB_STAGES) + 1) * SUB_STAGES),
+          );
+          break;
+        case 'PageUp':
+          e.preventDefault();
+          scrollToSubstage(
+            Math.max(0, (Math.floor(keyTargetRef.current / SUB_STAGES) - 1) * SUB_STAGES),
+          );
+          break;
+        case 'Home':
+          e.preventDefault();
+          scrollToSubstage(0);
+          break;
+        case 'End':
+          e.preventDefault();
+          scrollToSubstage(subTotal - 1);
+          break;
+        default:
+          break;
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', onScrollSettle, { passive: true });
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', onScrollSettle);
+      window.clearTimeout(settleTimer);
+    };
+  }, []);
   useEffect(() => {
     const ric =
       typeof window !== 'undefined' && window.requestIdleCallback
