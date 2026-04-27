@@ -38,14 +38,18 @@
   grid-template-columns: 1fr;
   gap: 0;
 }
-/* When a substage has a narration script, the body grows a second
-   row to host the terminal panel. The viz row uses 1fr so it grows
-   to take all the remaining space; the terminal row is auto-sized
-   so it fits the script height without compressing the viz more
-   than necessary. */
+/* When a substage has a narration script, on wide viewports the
+   terminal sits as a third column on the right so the viz keeps its
+   full height. Below 1280 px we collapse to two rows (see media
+   query). 360 px on the terminal column comfortably fits the longest
+   scripted line at 12.5 px monospace. */
 .atlas-plucked-body-with-terminal {
-  grid-template-rows: 1fr auto;
-  row-gap: 16px;
+  grid-template-columns: 220px 1fr 360px;
+  grid-template-rows: 1fr;
+  column-gap: 24px;
+}
+.atlas-plucked-body-flat.atlas-plucked-body-with-terminal {
+  grid-template-columns: 1fr 360px;
 }
 .atlas-plucked-side {
   grid-column: 1;
@@ -57,14 +61,22 @@
 .atlas-plucked-viz {
   grid-column: 2;
   grid-row: 1;
+  min-width: 0;
 }
 .atlas-plucked-body-flat .atlas-plucked-viz {
   grid-column: 1;
 }
 .atlas-plucked-terminal-slot {
-  grid-column: 1 / -1;
-  grid-row: 2;
+  grid-column: 3;
+  grid-row: 1;
+  min-width: 0;
   min-height: 0;
+  display: flex;
+  align-items: stretch;
+}
+.atlas-plucked-body-flat.atlas-plucked-body-with-terminal
+  .atlas-plucked-terminal-slot {
+  grid-column: 2;
 }
 
 /* Re-enable pointer events ONLY on the chip-locator hot-zones inside
@@ -163,6 +175,24 @@
     grid-template-rows: auto 1fr;
     gap: 14px;
   }
+  /* Below 1280 px the terminal can no longer fit as a side column —
+     drop it to a third row under the viz so the script still reads. */
+  .atlas-plucked-body-with-terminal {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    column-gap: 0;
+    row-gap: 14px;
+  }
+  .atlas-plucked-body-flat.atlas-plucked-body-with-terminal {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+  .atlas-plucked-body-with-terminal .atlas-plucked-viz { grid-column: 1; grid-row: 2; }
+  .atlas-plucked-body-with-terminal .atlas-plucked-terminal-slot { grid-column: 1; grid-row: 3; }
+  .atlas-plucked-body-flat.atlas-plucked-body-with-terminal
+    .atlas-plucked-viz { grid-row: 1; }
+  .atlas-plucked-body-flat.atlas-plucked-body-with-terminal
+    .atlas-plucked-terminal-slot { grid-row: 2; }
   .atlas-plucked-side {
     border-right: none;
     border-bottom: 1px solid currentColor;

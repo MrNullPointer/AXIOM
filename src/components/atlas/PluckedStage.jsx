@@ -47,6 +47,11 @@ export default function PluckedStage({ stage, subStageIndex = 0, subStageT = 0, 
   const depthIndex = flat ? 0 : (SUBSTAGE_TO_DEPTH[subStageIndex] ?? 0);
   const ascending = !flat && subStageIndex > 2;
   const reduce = useReducedMotion();
+  // Flat stages render a single visual the entire scroll-window, so the
+  // narration script is the same throughout — pin the lookup to substage
+  // 0 instead of the raw substage index, which would otherwise unhook
+  // the script for substages 1..5.
+  const scriptIndex = flat ? 0 : subStageIndex;
   return (
     // Default-mode AnimatePresence (NOT mode="popLayout"). popLayout
     // triggers framer-motion's layout measurement system, which
@@ -66,23 +71,53 @@ export default function PluckedStage({ stage, subStageIndex = 0, subStageT = 0, 
           ascending={ascending}
           flat={flat}
           reduce={reduce}
-          script={getScript(stage.id, subStageIndex)}
+          script={getScript(stage.id, scriptIndex)}
         />
       ) : null}
     </AnimatePresence>
   );
 }
 
-const Card = forwardRef(function Card({ stage, subStageT, depthIndex, ascending, flat, reduce, script }, ref) {
+const Card = forwardRef(function Card({ stage, subStageIndex, subStageT, depthIndex, ascending, flat, reduce, script }, ref) {
   const hasTerminal = !!script;
   const src = STAGE_SOURCE_RECTS[stage.id] || { x: 0.5, y: 0.5, w: 0.05, h: 0.05 };
   const color = STAGE_COLORS[stage.id] || 'rgb(var(--pad-glow))';
+  // Reading-pause linger: the script types faster than scroll
+  // progresses, so the tail end of every substage is a "linger" — the
+  // script holds fully typed while the user finishes reading, before
+  // the next substage boundary swaps the content. Without this gap, a
+  // single scroll tick at the substage edge replaces a just-finished
+  // sentence with a brand-new one, giving the user no beat to absorb.
+  //
+  //   • Deep-dive (one script per substage): typed by 45 % of substage,
+  //     55 % linger before the boundary fade — half the substage is
+  //     pure reading time so the eye can absorb before the next one
+  //     swaps in.
+  //   • Flat (one script per stage): typed by 80 % of stage, 20 % linger
+  //     before the stage boundary card-pluck.
+  //
+  // In both cases the linger length scales with how fast the user is
+  // scrolling — slow readers get a longer pause, fast scrollers get a
+  // shorter one but still see the full script before it swaps.
+  const TYPE_THROUGH = flat ? 0.80 : 0.45;
+  const termT = flat
+    ? Math.min(1, ((subStageIndex + subStageT) / 6) / TYPE_THROUGH)
+    : Math.min(1, subStageT / TYPE_THROUGH);
+
+  // Card dimensions — sized to give the visualization breathing room
+  // even when the narration terminal is also rendered. On wide viewports
+  // the terminal moves to a right-hand column (see StageAnimations.css),
+  // so the viz keeps its full height. The vertical cap (84 vh) leaves a
+  // gap below the card for the slim StageCallout cycle-ribbon — the two
+  // share the same horizontal axis but never overlap.
+  const CARD_W = 'min(1480px, 94vw)';
+  const CARD_H = 'min(760px, 84vh)';
 
   // Reduced-motion: snap from the same end-state, skip the pluck physics
   // and the depth-crossfade spring entirely. The card still cross-fades
   // softly via opacity so AnimatePresence keying stays meaningful.
   const initial = reduce
-    ? { top: '50vh', left: '50vw', width: 'min(1100px, 95vw)', height: 'min(620px, 84vh)', opacity: 0, x: '-50%', y: '-50%' }
+    ? { top: '50vh', left: '50vw', width: CARD_W, height: CARD_H, opacity: 0, x: '-50%', y: '-50%' }
     : {
         top: `${src.y * 100}vh`,
         left: `${src.x * 100}vw`,
@@ -95,8 +130,8 @@ const Card = forwardRef(function Card({ stage, subStageT, depthIndex, ascending,
   const animate = {
     top: '50vh',
     left: '50vw',
-    width: 'min(1100px, 95vw)',
-    height: 'min(620px, 84vh)',
+    width: CARD_W,
+    height: CARD_H,
     opacity: 1,
     filter: 'blur(0px)',
     scale: 1,
@@ -255,7 +290,7 @@ const Card = forwardRef(function Card({ stage, subStageT, depthIndex, ascending,
                 <StageAnimation
                   stageId={stage.id}
                   subStageIndex={depthIndex}
-                  subStageT={subStageT}
+                  subStageT={flat ? termT : subStageT}
                   accent={color}
                   scrub
                 />
@@ -265,7 +300,35 @@ const Card = forwardRef(function Card({ stage, subStageT, depthIndex, ascending,
 
           {hasTerminal && (
             <div className="atlas-plucked-terminal-slot">
-              <StageTerminal script={script} t={subStageT} accent={color} />
+              {/* Crossfade between scripts at substage boundaries.
+                  mode="wait" so the outgoing script finishes fading
+                  before the incoming one mounts — otherwise two
+                  scripts overlap mid-fade and the eye can't settle.
+                  Tighter than the viz crossfade above (180 ms vs.
+                  320 ms) so the terminal feels responsive without
+                  pulling focus from the bigger viz transition. */}
+              <AnimatePresence mode="wait">
+                {/* Flat stages keep the same script across all 6
+                    substages — keying on subStageIndex would re-mount
+                    + crossfade for every substage tick within intro/
+                    recap, even though the content never changed.
+                    Pin the key to 0 for flat so the terminal stays
+                    mounted and the typing flows smoothly. */}
+                <motion.div
+                  key={`${stage.id}-${flat ? 0 : subStageIndex}`}
+                  initial={reduce ? { opacity: 0 } : { opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4 }}
+                  transition={{ duration: reduce ? 0.1 : 0.18, ease: 'easeOut' }}
+                  style={{ height: '100%' }}
+                >
+                  <StageTerminal
+                    script={script}
+                    t={termT}
+                    accent={color}
+                  />
+                </motion.div>
+              </AnimatePresence>
             </div>
           )}
         </div>

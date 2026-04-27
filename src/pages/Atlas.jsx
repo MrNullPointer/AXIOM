@@ -87,12 +87,19 @@ export default function Atlas() {
   const setNarrativeStage = useSetNarrativeStage();
   const setNarrativeActive = useSetNarrativeActive();
   const stage = SCENARIO_STAGES[stageIndex];
-  // The last 1/6 of every stage is the "rest" beat. The plucked card
-  // bows out so the BG die-shot is briefly fully visible before the next
-  // stage's pluck begins. Disabled on the final stage so the user
-  // doesn't see an empty card at the very end of the narrative.
+  // The last 1/6 of every deep-dive stage is the "rest" beat. The plucked
+  // card bows out so the BG die-shot is briefly fully visible before the
+  // next stage's pluck begins. Skipped on:
+  //   • the final stage, so the user doesn't see an empty card at the
+  //     very end of the narrative.
+  //   • flat stages (intro/recap), which span their whole scroll-window
+  //     with one continuous visualization — taking their last sixth away
+  //     would leave the card empty for ~110 px of scroll right when the
+  //     reader is finishing the overview.
   const isLastStage = stageIndex === SCENARIO_STAGES.length - 1;
-  const isRestBeat = subStageIndex === SUB_STAGES - 1 && !isLastStage;
+  const isFlatStage = stage && (stage.id === 'intro' || stage.id === 'recap');
+  const isRestBeat =
+    subStageIndex === SUB_STAGES - 1 && !isLastStage && !isFlatStage;
 
   useEffect(() => {
     setNarrativeStage(null);
@@ -131,24 +138,81 @@ export default function Atlas() {
     }
   }, [stageIndex, inView]);
 
-  // Keyboard navigation through the narrative. Arrow keys step one
-  // substage at a time, PageUp/Down step a full stage, Home/End jump
-  // to the narrative's start/end. We only intercept when the narrative
-  // is in view and the user isn't typing into an input. Each press
-  // smooth-scrolls; the rAF tick converts the moving scrollY into
-  // substage-progress on the way.
+  // Keyboard navigation through the narrative.
   //
-  // Implementation note: holding an arrow key fires repeats faster
-  // than a smooth-scroll completes, so reading "current substage"
-  // from window.scrollY mid-flight would re-target the same substage
-  // and the user would feel stuck. We track the *commanded* substage
-  // in a ref and increment from there. When the user mouse-scrolls or
-  // taps a different control, the ref re-syncs to the actual position
-  // on the first quiet frame after scroll settles.
-  const keyTargetRef = useRef(0);
+  // We don't snap to substages anymore. Substage-snapping made each
+  // arrow press jump ~17 % of an animation timeline, and the browser's
+  // native smooth-scroll lands in 150–300 ms regardless of distance, so
+  // animations had no time to play and the card-shell crossfade got
+  // interrupted. Now we run a custom RAF tween (cubic-in-out) and let
+  // the rAF tick translate the moving scrollY into --sv-t for free.
+  //
+  // Bindings:
+  //   Arrow ↓/↑/←/→      relative scroll, ~8.5 % viewport, 320 ms
+  //   PageDown/PageUp    jump to next/prev stage start (lands 8 % in
+  //                      so the card has plucked + first beat is up)
+  //   Home / End         document top / bottom, 720 ms
+  //
+  // Held key: each repeat extends the in-flight target instead of
+  // restarting the tween, so motion stays continuous. Reversing
+  // direction snaps the base back to current scrollY so up-after-down
+  // feels immediate. Reduced-motion users get instant scrollTo.
   useEffect(() => {
-    const subTotal = SCENARIO_STAGES.length * SUB_STAGES;
+    let raf = 0;
+    let from = 0;
+    let target = 0;
+    let t0 = 0;
+    let duration = 0;
 
+    function ease(t) {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+    function maxScrollY() {
+      return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    }
+    function tick(now) {
+      const t = duration > 0 ? Math.min(1, (now - t0) / duration) : 1;
+      window.scrollTo(0, from + (target - from) * ease(t));
+      if (t < 1) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        raf = 0;
+      }
+    }
+    function reduceMotion() {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+    function scrollByAnimated(delta, ms) {
+      const max = maxScrollY();
+      if (reduceMotion()) {
+        window.scrollTo(0, Math.max(0, Math.min(max, window.scrollY + delta)));
+        return;
+      }
+      // Same-direction press: extend the in-flight target, so a held
+      // arrow chains into continuous motion instead of stuttering on
+      // each repeat. Reverse-direction press: snap base to current
+      // scrollY so the user feels the reversal immediately.
+      const inFlight = raf !== 0;
+      const sameDir = inFlight && Math.sign(delta) === Math.sign(target - from);
+      const base = sameDir ? target : window.scrollY;
+      target = Math.max(0, Math.min(max, base + delta));
+      from = window.scrollY;
+      t0 = performance.now();
+      duration = ms;
+      if (!inFlight) raf = requestAnimationFrame(tick);
+    }
+    function scrollToAnimated(absY, ms) {
+      const dest = Math.max(0, Math.min(maxScrollY(), absY));
+      if (reduceMotion()) {
+        window.scrollTo(0, dest);
+        return;
+      }
+      target = dest;
+      from = window.scrollY;
+      t0 = performance.now();
+      duration = ms;
+      if (!raf) raf = requestAnimationFrame(tick);
+    }
     function isTypingTarget() {
       const el = document.activeElement;
       if (!el) return false;
@@ -157,93 +221,103 @@ export default function Atlas() {
       if (el.isContentEditable) return true;
       return false;
     }
-    function currentSubstageIdx() {
+    function getNarrativeBounds() {
       const el = narrativeRef.current;
-      if (!el) return 0;
-      const rect = el.getBoundingClientRect();
-      const total = Math.max(1, rect.height - window.innerHeight);
-      const p = Math.max(0, Math.min(1, -rect.top / total));
-      return Math.min(subTotal - 1, Math.floor(p * subTotal));
-    }
-    function scrollToSubstage(idx) {
-      const el = narrativeRef.current;
-      if (!el) return;
-      const clamped = Math.max(0, Math.min(subTotal - 1, idx));
-      keyTargetRef.current = clamped;
+      if (!el) return null;
       const rect = el.getBoundingClientRect();
       const top = rect.top + window.scrollY;
       const total = Math.max(1, rect.height - window.innerHeight);
-      // Aim ~25 % into the substage so the script has a moment to
-      // type before the next press could advance again.
-      const target = top + ((clamped + 0.25) / subTotal) * total;
-      window.scrollTo({ top: target, behavior: 'smooth' });
+      return { top, total };
     }
-    function narrativeIsActive() {
-      const el = narrativeRef.current;
-      if (!el) return false;
-      const rect = el.getBoundingClientRect();
-      return rect.top < window.innerHeight && rect.bottom > 0;
+    // Stage index inferred from the *target* of the in-flight tween
+    // when there is one — this way rapid PageDown presses chain across
+    // stages instead of re-targeting the same one mid-flight.
+    function currentStageIdx() {
+      const b = getNarrativeBounds();
+      if (!b) return 0;
+      const ref = raf ? target : window.scrollY;
+      const totalStages = SCENARIO_STAGES.length;
+      const p = Math.max(0, Math.min(0.9999, (ref - b.top) / b.total));
+      return Math.min(totalStages - 1, Math.floor(p * totalStages));
     }
-    // Re-sync the commanded ref to the actual scroll position when
-    // the user is no longer in the middle of a key-driven scroll.
-    // Detect "settled" by debouncing the scroll event — if 180 ms
-    // pass with no further scroll, the smooth-scroll has either
-    // finished or the user mouse-scrolled to a new place.
-    let settleTimer = 0;
-    function onScrollSettle() {
-      window.clearTimeout(settleTimer);
-      settleTimer = window.setTimeout(() => {
-        keyTargetRef.current = currentSubstageIdx();
-      }, 180);
+    function jumpToStage(idx) {
+      const b = getNarrativeBounds();
+      if (!b) return;
+      const totalStages = SCENARIO_STAGES.length;
+      const clamped = Math.max(0, Math.min(totalStages - 1, idx));
+      // Land 8 % into the stage so the card shell has plucked and the
+      // first animation beat is visible — not at the prior stage's
+      // rest beat.
+      const targetProgress = (clamped + 0.08) / totalStages;
+      scrollToAnimated(b.top + targetProgress * b.total, 720);
     }
-    // Initial sync once the ref is mounted — without this, the very
-    // first key press from a mouse-scrolled position uses the stale
-    // 0 default and snaps the user back to the start of the narrative.
-    keyTargetRef.current = currentSubstageIdx();
+    // Arrow step = half of one narrative substage. With 6 substages per
+    // stage and 9 stages, two presses per substage means: press 1 lands
+    // mid-substage (typing already complete + linger started), press 2
+    // crosses into the next substage. Reading time is whatever pause
+    // the user takes between presses. Outside the narrative (hero,
+    // footer) we fall back to a viewport-relative step so scrolling
+    // feels normal there too.
+    function arrowStepPx() {
+      const b = getNarrativeBounds();
+      const fallback = Math.round(window.innerHeight * 0.06);
+      if (!b) return fallback;
+      const subPx = b.total / (SCENARIO_STAGES.length * SUB_STAGES);
+      return Math.max(36, Math.round(subPx * 0.5));
+    }
     function onKey(e) {
       if (isTypingTarget()) return;
-      if (!narrativeIsActive()) return;
+      // Don't override system shortcuts (Cmd+ArrowDown, Ctrl+End, etc).
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const arrowPx = arrowStepPx();
       switch (e.key) {
         case 'ArrowDown':
         case 'ArrowRight':
           e.preventDefault();
-          scrollToSubstage(keyTargetRef.current + 1);
+          scrollByAnimated(arrowPx, 320);
           break;
         case 'ArrowUp':
         case 'ArrowLeft':
           e.preventDefault();
-          scrollToSubstage(keyTargetRef.current - 1);
+          scrollByAnimated(-arrowPx, 320);
           break;
         case 'PageDown':
           e.preventDefault();
-          scrollToSubstage(
-            Math.min(subTotal - 1, (Math.floor(keyTargetRef.current / SUB_STAGES) + 1) * SUB_STAGES),
-          );
+          jumpToStage(currentStageIdx() + 1);
           break;
         case 'PageUp':
           e.preventDefault();
-          scrollToSubstage(
-            Math.max(0, (Math.floor(keyTargetRef.current / SUB_STAGES) - 1) * SUB_STAGES),
-          );
+          jumpToStage(currentStageIdx() - 1);
           break;
         case 'Home':
           e.preventDefault();
-          scrollToSubstage(0);
+          scrollToAnimated(0, 720);
           break;
         case 'End':
           e.preventDefault();
-          scrollToSubstage(subTotal - 1);
+          scrollToAnimated(maxScrollY(), 720);
           break;
         default:
           break;
       }
     }
+    // If the user wheel-scrolls or trackpads while a tween is running,
+    // the manual scroll fights the tween. Cancel the tween on any
+    // user-initiated scroll input so manual scroll wins.
+    function onWheel() {
+      if (raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    }
     window.addEventListener('keydown', onKey);
-    window.addEventListener('scroll', onScrollSettle, { passive: true });
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('touchmove', onWheel, { passive: true });
     return () => {
       window.removeEventListener('keydown', onKey);
-      window.removeEventListener('scroll', onScrollSettle);
-      window.clearTimeout(settleTimer);
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchmove', onWheel);
+      if (raf) cancelAnimationFrame(raf);
     };
   }, []);
   useEffect(() => {
@@ -260,11 +334,13 @@ export default function Atlas() {
   }, []);
 
   // Card is visible from 1.5% (just after the reveal-zoom finishes at
-  // 4%) to the very end. With 9 stages each ~11% wide, intro is 0-11%
-  // so we want the card up early. During the rest beat the viz hides
-  // so the BG can breathe between plucks; the callout stays so the
-  // breadcrumb doesn't blink.
-  const calloutVisible = inView && progress > 0.015 && progress < 0.99;
+  // 4%) to the very end of the narrative. With 9 stages each ~11% wide,
+  // intro is 0-11% so we want the card up early. During the rest beat
+  // the viz hides so the BG can breathe between plucks; the callout
+  // stays so the breadcrumb doesn't blink. We deliberately do NOT cap
+  // the upper end — the recap waterfall is the closing punchline and
+  // must stay legible through the final scroll pixels.
+  const calloutVisible = inView && progress > 0.015;
   const stageVizVisible = calloutVisible && !isRestBeat;
 
   return (
