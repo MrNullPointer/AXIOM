@@ -235,20 +235,34 @@ function NotFound() {
 }
 
 /**
- * Lightweight placeholder shown while a route's chunk loads. No spinner —
- * just a thin progress hint that lets layout settle without flashing
- * skeleton text we don't have yet.
+ * Substrate-coherent placeholder shown while a lazy route chunk loads
+ * (ConceptPage, DomainPage). Mirrors the silhouette of a real page —
+ * marker eyebrow, display headline, lede paragraph, viz card — so the
+ * eye never sees a bare CircuitFlow background flashing through. The
+ * container matches the page padding rhythm so when content commits,
+ * the hero lands without layout shift.
  */
 function RouteFallback() {
   return (
     <div
-      className="mx-auto h-[60vh] max-w-7xl px-5 py-12 sm:px-8"
+      className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10"
       aria-hidden="true"
     >
-      <div
-        className="h-1 w-24 animate-pulse rounded-full"
-        style={{ background: 'var(--rule-strong)' }}
-      />
+      {/* marker eyebrow */}
+      <div className="skeleton-bar h-3 w-24" />
+      {/* display headline — two lines worth of hero type */}
+      <div className="mt-6 space-y-3">
+        <div className="skeleton-bar h-12 w-[68%] sm:h-16" />
+        <div className="skeleton-bar h-12 w-[42%] sm:h-16" />
+      </div>
+      {/* lede paragraph — three short lines, tapering */}
+      <div className="mt-7 space-y-2.5">
+        <div className="skeleton-bar h-3.5 w-[58%]" />
+        <div className="skeleton-bar h-3.5 w-[48%]" />
+        <div className="skeleton-bar h-3.5 w-[34%]" />
+      </div>
+      {/* hero viz / card placeholder */}
+      <div className="skeleton-card mt-10 h-[44vh] min-h-[300px] w-full" />
     </div>
   );
 }
