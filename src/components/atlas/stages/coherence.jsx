@@ -12,20 +12,20 @@ import {
 /**
  * CoherenceL0 — four cores, a directory, and the snoop bus.
  *
- * Topology fix (was 4 random diagonals): now the snoop bus is an
- * actual horizontal bus running across the middle of the chip. Each
- * core taps the bus, the directory taps it too. When C0 modifies a
- * line, snoop messages travel left+right across the bus to the other
- * cores; their cached copies (if any) get invalidated.
+ * Read-miss snoop: C0 has just experienced a read miss on the load and
+ * is about to install the line. The directory checks every other core's
+ * state; C1 already holds the line in [S]hared. Since no core holds it
+ * Modified, the line is safe to install Shared in C0 and the directory
+ * adds C0 to the sharer bitmap.
  *
- * The directory's sharer bitmap shows which cores currently hold a
- * copy of this line. After the snoop completes, only C0's bit stays
- * lit (Modified, exclusive owner).
+ * The directory's sharer bitmap shows which cores hold a copy. After
+ * the snoop, both C0 and C1 are lit (the two current sharers); C2 and
+ * C3 stay invalid.
  */
 function CoherenceL0({ accent }) {
   const cores = [
-    { id: 'C0', x: 40,  y: 40,  state: 'M' },
-    { id: 'C1', x: 460, y: 40,  state: 'I' },
+    { id: 'C0', x: 40,  y: 40,  state: 'S' },
+    { id: 'C1', x: 460, y: 40,  state: 'S' },
     { id: 'C2', x: 40,  y: 280, state: 'I' },
     { id: 'C3', x: 460, y: 280, state: 'I' },
   ];
@@ -43,7 +43,7 @@ function CoherenceL0({ accent }) {
 
         {/* The four cores at the corners */}
         {cores.map((c) => {
-          const lit = c.state === 'M';
+          const lit = c.state !== 'I';
           return (
             <g key={c.id} transform={`translate(${c.x}, ${c.y})`}>
               <rect width={100} height={100} rx={3}
@@ -126,7 +126,7 @@ function CoherenceL0({ accent }) {
               fill="none" stroke={accent} strokeOpacity="0.5" strokeWidth="0.7" />
             <rect x={3} y={6} width={14} height={28}
               fill={accent}
-              fillOpacity={i === 0 ? 0.85 : 0.18}
+              fillOpacity={(i === 0 || i === 1) ? 0.85 : 0.18}
               className={`sv-coh-bit sv-coh-dir-bit-${i}-0`} />
           </g>
         ))}
@@ -158,7 +158,7 @@ function CoherenceL0({ accent }) {
         ))}
 
         <L x={300} y={388}
-          text="C0 modifies → snoop fires on bus → others invalidate · directory updates"
+          text="C0 read-miss → directory checks · no M owners → install [S]hared"
           color={accent} em={0.55} size={9} />
       </svg>
     </Host>
