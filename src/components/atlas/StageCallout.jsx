@@ -12,12 +12,32 @@
  *
  * Sits below the card on the same vertical axis. Pointer events are
  * disabled so the ribbon never traps scroll over the narrative.
+ *
+ * Two timing roles share this ribbon:
+ *
+ *   • Counter (X / 09) and the dot timeline are pure scroll-progress
+ *     indicators. They update instantly so the ribbon is always honest
+ *     about where the user is in the journey.
+ *
+ *   • Title, +latency, Σcumulative are stage-specific labels. The
+ *     plucked card takes ~350 ms to arrive at center after a stage
+ *     boundary; if these labels swap instantly, the user reads the
+ *     new stage name while the old card is still flying away. They are
+ *     wrapped in an AnimatePresence mode="wait" keyed on stage.id so
+ *     they crossfade in step with the card cycle. The fade duration
+ *     matches the in-card terminal crossfade (180 ms) so the two read
+ *     as a single ribbon-and-card breath at every stage flip.
  */
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
 const ease = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 export default function StageCallout({ stage, stageIndex, totalStages, visible }) {
+  const reduce = useReducedMotion();
   if (!stage) return null;
+  const labelFade = reduce
+    ? { duration: 0.10, ease: 'easeOut' }
+    : { duration: 0.18, ease: 'easeOut' };
   return (
     <div
       className="atlas-stage-callout pointer-events-none fixed z-30"
@@ -44,6 +64,7 @@ export default function StageCallout({ stage, stageIndex, totalStages, visible }
           fontFamily: "'JetBrains Mono', ui-monospace, monospace",
         }}
       >
+        {/* Stage counter — scroll-progress indicator, updates instantly. */}
         <span
           style={{
             fontSize: '10px',
@@ -56,45 +77,64 @@ export default function StageCallout({ stage, stageIndex, totalStages, visible }
           {String(stageIndex + 1).padStart(2, '0')} / {String(totalStages).padStart(2, '0')}
         </span>
 
-        <span
-          style={{
-            fontSize: '12px',
-            letterSpacing: '0.18em',
-            color: 'var(--ink)',
-            textTransform: 'uppercase',
-            whiteSpace: 'nowrap',
-            fontWeight: 500,
-          }}
-        >
-          {stage.title}
-        </span>
+        {/* Stage-specific labels — keyed on stage.id, crossfade in step
+            with the plucked card. initial={false} so the very first
+            mount doesn't fade (the ribbon's outer opacity transition
+            already handles entrance). */}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={stage.id}
+            className="flex flex-1 items-center gap-5"
+            style={{ minWidth: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={labelFade}
+          >
+            <span
+              style={{
+                fontSize: '12px',
+                letterSpacing: '0.18em',
+                color: 'var(--ink)',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+                fontWeight: 500,
+              }}
+            >
+              {stage.title}
+            </span>
 
-        <span style={{ flex: 1 }} />
+            <span style={{ flex: 1 }} />
 
-        <span
-          style={{
-            fontSize: '11px',
-            color: 'var(--ink-soft)',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <span style={{ color: 'var(--ink-faint)', letterSpacing: '0.16em' }}>+</span>{' '}
-          <span style={{ color: 'var(--ink)' }}>{stage.latency}</span>
-        </span>
+            <span
+              style={{
+                fontSize: '11px',
+                color: 'var(--ink-soft)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span style={{ color: 'var(--ink-faint)', letterSpacing: '0.16em' }}>+</span>{' '}
+              <span style={{ color: 'var(--ink)' }}>{stage.latency}</span>
+            </span>
 
-        <span
-          style={{
-            fontSize: '11px',
-            color: 'var(--ink-soft)',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <span style={{ color: 'var(--ink-faint)', letterSpacing: '0.16em' }}>Σ</span>{' '}
-          <span style={{ color: `rgb(var(--pad-glow))`, fontWeight: 500 }}>
-            {stage.cumulative}
-          </span>
-        </span>
+            <span
+              style={{
+                fontSize: '11px',
+                color: 'var(--ink-soft)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span style={{ color: 'var(--ink-faint)', letterSpacing: '0.16em' }}>Σ</span>{' '}
+              <span style={{ color: `rgb(var(--pad-glow))`, fontWeight: 500 }}>
+                {stage.cumulative}
+              </span>
+            </span>
+          </motion.div>
+        </AnimatePresence>
 
+        {/* Dot timeline — scroll-progress indicator, animates in place
+            via per-dot CSS transition. Stays outside the swap so dots
+            never blink at stage boundaries. */}
         <span className="flex items-center gap-1" style={{ paddingLeft: '4px' }}>
           {Array.from({ length: totalStages }).map((_, i) => (
             <span
