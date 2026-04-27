@@ -84,3 +84,17 @@ test('retire stage labels the 16-cell rendering as a slice of x1', () => {
     'retire stage must clarify the 16-bit slice vs 64-bit register',
   );
 });
+
+test('intro stage publishes the simulation-assumptions contract', () => {
+  // The narrative makes specific cycle claims (4 / 287). Without a
+  // visible toy-model contract a serious reader cannot tell whether
+  // those numbers come from a real microarchitecture or are made up.
+  // The intro terminal must declare frequency, cache geometry, and
+  // coherence so the cycle ledger is grounded in stated assumptions.
+  const scripts = read('src/components/atlas/narrativeScripts.js');
+  assert.match(scripts, /3 ?GHz/, 'intro must declare core frequency');
+  assert.match(scripts, /L1 ?32K/, 'intro must declare L1 size');
+  assert.match(scripts, /4w|4-way/, 'intro must declare L1 associativity');
+  assert.match(scripts, /64B|64 ?B/, 'intro must declare cache-line size');
+  assert.match(scripts, /MESI/, 'intro must declare the coherence model');
+});

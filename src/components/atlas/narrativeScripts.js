@@ -35,7 +35,8 @@ export const NARRATIVE_SCRIPTS = {
   intro: [
     [
       '$ trace lb x1, 0(x2)',
-      '  scenario: cold line · no cache hit',
+      '  scenario · cold line · no cache hit',
+      '  toy · 3 GHz · L1 32K/4w/64B · MESI',
       '  best path  · L1 hit       →   4 cyc',
       '  slow path  · all miss     → 287 cyc',
       '→ 70× cost · same single byte',
