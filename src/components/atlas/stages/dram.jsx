@@ -128,10 +128,12 @@ function DramL0({ accent }) {
  *
  * Layout:
  *   • WL drives the access gate from above.
- *   • BL on the left of the access transistor — driven low (precharge)
- *     before read; the cap's charge dumps onto BL during read.
+ *   • BL on the left of the access transistor — precharged to ½VDD
+ *     before access. When WL fires, Cs and BL share charge through M1
+ *     and BL shifts by a tiny ΔV (~100 mV) above or below ½VDD; the
+ *     sense amp then drives BL to full rail and restores Cs.
  *   • Storage cap (Cs) on the right of the access transistor; bottom
- *     plate tied to GND.
+ *     plate held at Vplate (~½VDD) in modern DRAM, not GND.
  */
 function DramL1({ accent }) {
   const wlY  = 80;
@@ -141,7 +143,7 @@ function DramL1({ accent }) {
   const capX = 410;
   const capTopY = 260;
   const capBotY = 280;
-  const gndY = 340;
+  const vplateY = 340;
   return (
     <Host accent={accent}>
       <svg viewBox="0 0 600 400" className="sv-svg" preserveAspectRatio="xMidYMid meet">
@@ -180,22 +182,20 @@ function DramL1({ accent }) {
         {/* Cs — top plate */}
         <line x1={capX - 24} y1={capTopY} x2={capX + 24} y2={capTopY} stroke={accent}
           strokeOpacity="0.95" strokeWidth="2.6" />
-        {/* Cs — bottom plate (curved, ground convention) */}
+        {/* Cs — bottom plate (curved, capacitor convention) */}
         <path d={`M ${capX - 22} ${capBotY} Q ${capX} ${capBotY + 6} ${capX + 22} ${capBotY}`}
           stroke={accent} strokeOpacity="0.95" strokeWidth="2.4" fill="none" />
         <L x={capX + 32} y={capTopY + 4} text="Cs" color={accent} anchor="start" em={1} size={13} />
         <L x={capX + 32} y={capTopY + 18} text="storage cap" color={accent} anchor="start" em={0.6} size={9} />
 
-        {/* Cs bottom → GND */}
-        <line x1={capX} y1={capBotY + 4} x2={capX} y2={gndY} stroke={accent}
+        {/* Cs bottom plate → Vplate rail (held at ½VDD in modern DRAM,
+            not GND — reduces dielectric stress and supports symmetric
+            storage above/below the midpoint). */}
+        <line x1={capX} y1={capBotY + 4} x2={capX} y2={vplateY} stroke={accent}
           strokeOpacity="0.65" strokeWidth="1.2" />
-        <line x1={capX - 18} y1={gndY} x2={capX + 18} y2={gndY} stroke={accent}
-          strokeOpacity="0.85" strokeWidth="1.6" />
-        <line x1={capX - 12} y1={gndY + 6} x2={capX + 12} y2={gndY + 6} stroke={accent}
-          strokeOpacity="0.6" strokeWidth="1.4" />
-        <line x1={capX - 6} y1={gndY + 12} x2={capX + 6} y2={gndY + 12} stroke={accent}
-          strokeOpacity="0.4" strokeWidth="1.2" />
-        <L x={capX} y={gndY + 28} text="GND" color={accent} em={0.7} size={9} />
+        <line x1={capX - 30} y1={vplateY} x2={capX + 30} y2={vplateY} stroke={accent}
+          strokeOpacity="0.85" strokeWidth="1.8" />
+        <L x={capX} y={vplateY + 16} text="Vplate · ½VDD" color={accent} em={0.7} size={9} />
 
         {/* Charge cloud — animated transfer from cap → BL during read */}
         <g className="sv-dram-charge-cloud">
@@ -215,7 +215,7 @@ function DramL1({ accent }) {
           ))}
         </g>
         <L x={300} y={386}
-          text="WL high → charge dumps from Cs onto BL · reading is destructive · refresh every 64 ms"
+          text="WL high → Cs shares charge with BL (~100 mV ΔV) · sense amp swings full rail + restores Cs · refresh / 64 ms"
           color={accent} em={0.55} size={9} />
       </svg>
     </Host>
@@ -224,14 +224,14 @@ function DramL1({ accent }) {
 
 /**
  * DramL2 — DRAM storage capacitor — parallel plates with the
- * dielectric between them and a charge density indicating which
- * logical state is stored.
+ * dielectric between them and a charge density (Q = C·ΔV electrons)
+ * encoding the bit. The bottom plate is held at Vplate (~½VDD) in
+ * modern DRAM, not at GND; the top plate sits at full VDD or GND
+ * depending on the stored bit, so charge storage is symmetric
+ * above and below the cell-plate midpoint.
  *
- * Field lines run vertically between top and bottom plates; the
- * stored charge sits as a population of electrons on the bottom
- * plate when storing a 0 (or top when storing a 1; we show "1" with
- * charge near the top plate). Refresh exists because the cap leaks
- * charge over ~ms timescales — DRAM's fundamental limitation.
+ * Refresh exists because the cap leaks toward Vplate over ~ms
+ * timescales — DRAM's fundamental limitation.
  */
 function DramL2({ accent }) {
   const xL = 130, xR = 470;
@@ -256,20 +256,17 @@ function DramL2({ accent }) {
           strokeOpacity="0.85" strokeWidth="1.4" />
         <L x={306} y={68} text="BL" color={accent} anchor="start" em={0.7} size={10} />
 
-        {/* Bottom plate (GND side) */}
+        {/* Bottom plate (Vplate side · held at ½VDD in modern DRAM) */}
         <rect x={xL} y={botPlateY} width={xR - xL} height={plateH} rx={2}
           fill={accent} fillOpacity="0.65"
           stroke={accent} strokeOpacity="0.95" strokeWidth="1" />
-        <L x={300} y={botPlateY + plateH + 16} text="Bottom Plate (GND)" color={accent} em={0.85} size={10} />
+        <L x={300} y={botPlateY + plateH + 16} text="Bottom Plate · Vplate" color={accent} em={0.85} size={10} />
         <Pin x={300} y={botPlateY + plateH} accent={accent} />
         <line x1={300} y1={botPlateY + plateH} x2={300} y2={358} stroke={accent}
           strokeOpacity="0.85" strokeWidth="1.4" />
-        <line x1={284} y1={358} x2={316} y2={358} stroke={accent}
-          strokeOpacity="0.85" strokeWidth="1.6" />
-        <line x1={290} y1={364} x2={310} y2={364} stroke={accent}
-          strokeOpacity="0.6" strokeWidth="1.4" />
-        <line x1={296} y1={370} x2={304} y2={370} stroke={accent}
-          strokeOpacity="0.4" strokeWidth="1.2" />
+        <line x1={268} y1={358} x2={332} y2={358} stroke={accent}
+          strokeOpacity="0.85" strokeWidth="1.8" />
+        <L x={300} y={374} text="Vplate · ½VDD" color={accent} em={0.7} size={9} />
 
         {/* Dielectric region with field lines (vertical, fading further from plates) */}
         <rect x={xL} y={dielTop} width={xR - xL} height={dielBot - dielTop}
@@ -288,8 +285,10 @@ function DramL2({ accent }) {
         <L x={xR + 14} y={(dielTop + dielBot) / 2 + 14}
           text="(SiO₂ / hi-κ)" color={accent} anchor="start" em={0.55} size={8} />
 
-        {/* Stored charge — electrons clustered on the top side
-            (representing logic 1). Animated subtle bobbing. */}
+        {/* Stored charge density · Q = C·ΔV electrons sitting on the
+            higher-potential plate side. Polarity convention is
+            arbitrary; the bit is the magnitude/sign of the charge
+            relative to Vplate, not its absolute direction. */}
         <g>
           {Array.from({ length: 16 }).map((_, i) => {
             const col = i % 8;
@@ -305,7 +304,7 @@ function DramL2({ accent }) {
           })}
         </g>
         <L x={xL + 12} y={dielTop + 22}
-          text="stored charge → logic 1" color={accent} anchor="start" em={0.55} size={9} />
+          text="stored charge · Q = C·ΔV · 1 bit per cell" color={accent} anchor="start" em={0.55} size={9} />
 
         {/* Leakage drift — a few electrons drift downward over the
             cycle, fading as they "escape". This is why DRAM needs
