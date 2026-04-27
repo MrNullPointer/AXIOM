@@ -9,7 +9,6 @@ import IndexPage from '../pages/IndexPage.jsx';
 import {
   NarrativeProvider,
   useNarrativeStage,
-  useNarrativeActive,
 } from '../components/atlas/narrativeContext.jsx';
 import { useMotion, densityMultiplier } from './motion.jsx';
 
@@ -26,12 +25,13 @@ function Layout({ onOpenSearch, density, isHome }) {
   // traffic matching the cache-miss story. Off-homepage routes always
   // see null (atlas page only sets it).
   const narrativeStage = useNarrativeStage();
-  // While the user is scrolling through the narrative, the dim overlay
-  // covers the BG. Drop CircuitFlow density so we're not painting a rich
-  // chip surface for nobody to see.
-  const narrativeActive = useNarrativeActive();
-  const baseDensity = narrativeActive ? Math.min(density, 0.45) : density;
-  const effectiveDensity = baseDensity * densityMultiplier(motionLevel);
+  // The narrative dim overlay is translucent, so the BG canvas is still
+  // visible underneath. We previously capped density to 0.45 here as a
+  // performance hedge, but that knocked CircuitFlow into the "minimal"
+  // tier (2 electrons max, 2.2 s between spawns) and the homepage looked
+  // dead while the user read. Full density during the narrative keeps
+  // the scripted electron paths matching the active stage legible.
+  const effectiveDensity = density * densityMultiplier(motionLevel);
 
   // Homepage-only cinema rig:
   //   • --bg-rot-x / --bg-rot-y : the BG silicon plane tilts in CSS
